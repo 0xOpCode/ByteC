@@ -1,0 +1,59 @@
+#!/bin/sh
+# ==============================================================================
+# 🚀 ByteC — Quick C/C++ Boilerplate Generator
+# Usage: cnew <filename>[.c|.cpp]
+# ==============================================================================
+
+if [ -z "$1" ]; then
+    echo "Usage: cnew <filename.c | filename.cpp>"
+    exit 1
+fi
+
+FILE="$1"
+case "$FILE" in
+    *.c|*.cpp) ;;
+    *) FILE="${FILE}.c" ;;
+esac
+
+if [ -f "$FILE" ]; then
+    echo "⚠️ File '$FILE' already exists! Opening in editor..."
+    command -v nvim >/dev/null 2>&1 && exec nvim "$FILE" || exec nano "$FILE"
+fi
+
+DIRNAME=$(dirname "$FILE")
+[ "$DIRNAME" != "." ] && mkdir -p "$DIRNAME"
+
+DATE=$(date "+%Y-%m-%d")
+
+case "$FILE" in
+    *.cpp)
+cat << 'EOF' > "$FILE"
+#include <iostream>
+#include <vector>
+#include <string>
+
+using namespace std;
+
+int main()
+{
+    cout << "Hello from ByteC!" << endl;
+    return 0;
+}
+EOF
+    ;;
+    *.c)
+cat << 'EOF' > "$FILE"
+#include <stdio.h>
+#include <stdlib.h>
+
+int main()
+{
+    printf("Hello from ByteC!\n");
+    return 0;
+}
+EOF
+    ;;
+esac
+
+echo "✅ Created '$FILE' with clean boilerplate."
+command -v nvim >/dev/null 2>&1 && exec nvim "$FILE" || exec nano "$FILE"

@@ -1,0 +1,97 @@
+#!/bin/sh
+# ==============================================================================
+# 🛡️ ByteC — Master CLI Manager
+# Usage: bytec [update | status | help]
+# ==============================================================================
+
+BYTEC_DIR="${HOME}/.bytec"
+NVIM_DIR="${HOME}/.config/nvim"
+
+cmd_update() {
+    echo "🔄 Checking and pulling latest ByteC & Neovim updates..."
+    
+    # 1. Update ByteC tools
+    if [ -d "$BYTEC_DIR/.git" ]; then
+        echo "📦 Updating ByteC CLI tools..."
+        git -C "$BYTEC_DIR" pull --ff-only
+    fi
+
+    # 2. Update Neovim C IDE Stack
+    if [ -d "$NVIM_DIR/.git" ]; then
+        echo "💡 Updating Neovim configuration (0xOpCode/nvim)..."
+        git -C "$NVIM_DIR" pull --ff-only
+        echo "⚡ Syncing Neovim plugins in background..."
+        command -v nvim >/dev/null 2>&1 && nvim --headless "+Lazy! sync" +qa >/dev/null 2>&1
+    fi
+
+    # 3. Update .last_check
+    mkdir -p "$BYTEC_DIR"
+    date +%s > "$BYTEC_DIR/.last_check"
+
+    echo "✅ ByteC is up to date with the latest 0xOpCode stack!"
+}
+
+cmd_status() {
+    echo "🛡️ ByteC Environment Status"
+    echo "──────────────────────────────────────────────"
+    echo "• Clang version:  $(clang --version 2>/dev/null | head -n 1 || echo 'Not installed')"
+    echo "• Make version:   $(make --version 2>/dev/null | head -n 1 || echo 'Not installed')"
+    echo "• CMake version:  $(cmake --version 2>/dev/null | head -n 1 || echo 'Not installed')"
+    echo "• Neovim version: $(nvim --version 2>/dev/null | head -n 1 || echo 'Not installed')"
+    echo "──────────────────────────────────────────────"
+    if [ -d "$NVIM_DIR/.git" ]; then
+        NVIM_COMMIT=$(git -C "$NVIM_DIR" rev-parse --short HEAD 2>/dev/null)
+        echo "• Neovim Commit:  $NVIM_COMMIT (0xOpCode/nvim)"
+    fi
+    if [ -d "$HOME/c_projects" ]; then
+        echo "• C Projects Dir: ~/c_projects -> $(readlink -f "$HOME/c_projects" 2>/dev/null || echo 'local')"
+    fi
+}
+
+cmd_check_silent() {
+    mkdir -p "$BYTEC_DIR"
+    LAST_CHECK=$(cat "$BYTEC_DIR/.last_check" 2>/dev/null || echo 0)
+    NOW=$(date +%s)
+    # Check once every 24 hours (86400 seconds)
+    if [ $((NOW - LAST_CHECK)) -gt 86400 ]; then
+        date +%s > "$BYTEC_DIR/.last_check"
+        if [ -d "$NVIM_DIR/.git" ]; then
+            git -C "$NVIM_DIR" fetch origin main -q 2>/dev/null
+            LOCAL=$(git -C "$NVIM_DIR" rev-parse @ 2>/dev/null)
+            REMOTE=$(git -C "$NVIM_DIR" rev-parse @{u} 2>/dev/null)
+            if [ -n "$LOCAL" ] && [ -n "$REMOTE" ] && [ "$LOCAL" != "$REMOTE" ]; then
+                echo "✨ ByteC updates available! Run 'bytec update' to get the latest features."
+            fi
+        fi
+    fi
+}
+
+cmd_help() {
+    echo "🛡️ ByteC — Modern 1-Click C Environment for Android & Termux"
+    echo ""
+    echo "Commands:"
+    echo "  cnew <file.c>       Create new C file with clean boilerplate"
+    echo "  crun <file.c>       Fast 1-step compile, run, & timing"
+    echo "  gcc <file.c>        Smart compiler wrapper (calls clang)"
+    echo "  g++ <file.cpp>      Smart C++ compiler wrapper (calls clang++)"
+    echo "  bytec update        Pull latest Neovim & ByteC features from GitHub"
+    echo "  bytec status        Check installed tools & environment"
+    echo ""
+    echo "Neovim Essential Keys:"
+    echo "  <Space> + r         Save, format (Allman), compile & run in full window"
+    echo "  Ctrl + s            Save & format file"
+    echo "  Ctrl + z / Ctrl + y Undo / Redo"
+    echo "  Ctrl + Enter        Insert newline below"
+    echo "  Ctrl + Shift + Enter Insert newline above"
+    echo "  Ctrl + d            Select word under cursor"
+    echo "  Ctrl + ~ / Ctrl + j Toggle floating terminal"
+    echo "  Select text + (     Auto-wrap selected text in ()"
+}
+
+case "$1" in
+    update) cmd_update ;;
+    status) cmd_status ;;
+    check)  cmd_check_silent ;;
+    help|"") cmd_help ;;
+    *) echo "Unknown command: $1. Run 'bytec help' for usage." ;;
+esac

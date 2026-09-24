@@ -1,0 +1,13 @@
+#!/bin/sh
+# ==============================================================================
+# 🛡️ ByteC — Smart G++ Wrapper for Termux / Clang++
+# Forwards college g++ commands directly to clang++
+# ==============================================================================
+
+if ! command -v clang++ >/dev/null 2>&1; then
+    echo "❌ Error: 'clang++' compiler is not installed." >&2
+    echo "💡 Run: pkg install clang" >&2
+    exit 1
+fi
+
+exec clang++ "$@"

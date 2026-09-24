@@ -1,0 +1,73 @@
+#!/bin/sh
+# ==============================================================================
+# ⚡ ByteC — Fast Compile & Run Helper
+# Usage: crun <filename.c | filename.cpp> [args...]
+# ==============================================================================
+
+if [ -z "$1" ]; then
+    echo "Usage: crun <filename.c | filename.cpp> [program_args...]"
+    exit 1
+fi
+
+SRC="$1"
+shift
+
+if [ ! -f "$SRC" ]; then
+    echo "❌ Error: Source file '$SRC' not found." >&2
+    exit 1
+fi
+
+DIR=$(dirname "$SRC")
+BASE=$(basename "$SRC")
+NAME="${BASE%.*}"
+EXT="${BASE##*.}"
+BIN="/tmp/${NAME}_$$.out"
+
+cleanup() {
+    rm -f "$BIN"
+}
+trap cleanup EXIT INT TERM
+
+echo "🔨 Compiling $SRC..."
+START_COMPILE=$(date +%s%3N 2>/dev/null || date +%s)
+
+case "$EXT" in
+    c)
+        clang -Wall -Wextra -O2 "$SRC" -o "$BIN" -lm
+        ;;
+    cpp|cc|cxx)
+        clang++ -Wall -Wextra -O2 -std=c++20 "$SRC" -o "$BIN"
+        ;;
+    *)
+        echo "❌ Unsupported file extension: .$EXT (Use .c or .cpp)" >&2
+        exit 1
+        ;;
+esac
+
+STATUS=$?
+if [ $STATUS -ne 0 ]; then
+    echo "❌ Compilation failed (exit code $STATUS)" >&2
+    exit $STATUS
+fi
+
+END_COMPILE=$(date +%s%3N 2>/dev/null || date +%s)
+COMPILE_TIME=$((END_COMPILE - START_COMPILE))
+
+echo "✅ Compilation successful (${COMPILE_TIME}ms)"
+echo "──────────────────────────────────────────────"
+echo "🚀 Running $NAME..."
+
+START_EXEC=$(date +%s%3N 2>/dev/null || date +%s)
+"$BIN" "$@"
+EXEC_STATUS=$?
+END_EXEC=$(date +%s%3N 2>/dev/null || date +%s)
+EXEC_TIME=$((END_EXEC - START_EXEC))
+
+echo ""
+echo "──────────────────────────────────────────────"
+if [ $EXEC_STATUS -eq 0 ]; then
+    echo "✨ Finished successfully (Exit: 0 | Execution Time: ${EXEC_TIME}ms)"
+else
+    echo "⚠️ Process finished with error (Exit: $EXEC_STATUS | Time: ${EXEC_TIME}ms)"
+fi
+exit $EXEC_STATUS

@@ -1,0 +1,8 @@
+# ByteC Git Ignore
+.last_check
+*.out
+*.o
+*.swp
+*.swo
+*~
+.DS_Store
