@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ByteC Documentation: Pocket C/C++ IDE for Android</title>
+  <meta name="description" content="1-click C/C++ development environment for Android Termux. Zero proot distro required. Complete beginner guide for college students.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  <header class="top-header">
+    <div style="display: flex; align-items: center; gap: 1rem;">
+      <button class="menu-toggle" aria-label="Toggle navigation menu">☰</button>
+      <a href="#" class="brand">
+        <span>🛡️ ByteC</span>
+        <span class="brand-badge">v1.1.0</span>
+      </a>
+    </div>
+    <div class="header-links">
+      <a href="#quickstart" class="nav-link">Quickstart</a>
+      <a href="#termux-setup" class="nav-link">First Time Guide</a>
+      <a href="#cli-tools" class="nav-link">Commands</a>
+      <a href="#faq" class="nav-link">Troubleshooting</a>
+      <a href="https://github.com/0xOpCode/ByteC" target="_blank" rel="noopener" class="btn-github">
+        <svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+        </svg>
+        GitHub
+      </a>
+    </div>
+  </header>
+
+  <div class="docs-layout">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="search-box">
+        <input type="text" id="docs-search" placeholder="Search documentation...">
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-title">Getting Started</div>
+        <ul class="nav-items">
+          <li><a href="#quickstart" class="active">1-Click Quickstart</a></li>
+          <li><a href="#why-bytec">Why ByteC?</a></li>
+          <li><a href="#termux-setup">First Time Termux Setup</a></li>
+        </ul>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-title">Coding Workflow</div>
+        <ul class="nav-items">
+          <li><a href="#create-code">Creating Files (cnew)</a></li>
+          <li><a href="#run-code">Compile & Run (crun)</a></li>
+          <li><a href="#nvim-guide">Neovim Survival Guide</a></li>
+          <li><a href="#touch-keys">Touch Navigation Bar</a></li>
+        </ul>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-title">Tools & Features</div>
+        <ul class="nav-items">
+          <li><a href="#templates">DSA & Lab Templates</a></li>
+          <li><a href="#multi-file">Multi-File Projects (cbuild)</a></li>
+          <li><a href="#format">Formatting (cformat)</a></li>
+          <li><a href="#debug">Debugging (cdebug)</a></li>
+          <li><a href="#test">Automated Tests (ctest)</a></li>
+          <li><a href="#manager">ByteC CLI Manager</a></li>
+        </ul>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-title">Help & Support</div>
+        <ul class="nav-items">
+          <li><a href="#faq">Common Doubts & FAQ</a></li>
+          <li><a href="#uninstall">Uninstalling</a></li>
+        </ul>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="content">
+      
+      <!-- Section: Quickstart -->
+      <section id="quickstart">
+        <h1>ByteC Documentation</h1>
+        <p>ByteC configures a C and C++ programming station directly on Android using native Termux. It installs in one command and takes ~120MB of storage. It requires no proot Linux container.</p>
+
+        <div class="callout callout-info">
+          <p><strong>First time opening Termux?</strong> Follow the <a href="#termux-setup" style="color: var(--accent-cyan);">First Time Termux Setup</a> below before running the command.</p>
+        </div>
+
+        <h2>1-Click Installation</h2>
+        <p>Open Termux and paste this command:</p>
+
+        <div class="code-wrapper">
+          <div class="code-header">
+            <span>bash</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code>curl -sL https://raw.githubusercontent.com/0xOpCode/ByteC/main/install.sh | bash</code></pre>
+        </div>
+
+        <p>When the installation completes, reload your shell:</p>
+
+        <div class="code-wrapper">
+          <div class="code-header">
+            <span>bash</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code>source ~/.bashrc</code></pre>
+        </div>
+      </section>
+
+      <!-- Section: Why ByteC -->
+      <section id="why-bytec">
+        <h2>Why ByteC Exists</h2>
+        <p>College C programming courses assume every student owns a laptop. Many students code on smartphones. Running full Linux distributions like Ubuntu via proot consumes 3GB to 5GB of storage, runs sluggishly on budget chips, and burns battery quickly.</p>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>College Problem</th>
+                <th>Standard Fix</th>
+                <th>ByteC Solution</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>No laptop / Low storage</td>
+                <td>Proot Ubuntu (needs 3-5GB)</td>
+                <td><strong>Native Termux (~120MB)</strong></td>
+              </tr>
+              <tr>
+                <td><code>gcc: command not found</code></td>
+                <td>Manual clang flag setup</td>
+                <td><strong>Smart gcc & g++ wrappers</strong></td>
+              </tr>
+              <tr>
+                <td>Phone keyboard lacks <code>{ } ; "</code></td>
+                <td>Switching keyboard layouts</td>
+                <td><strong>Ergonomic 2-row touch key bar</strong></td>
+              </tr>
+              <tr>
+                <td>Code lost on Termux uninstall</td>
+                <td>Lost progress</td>
+                <td><strong>Auto-linked to /sdcard/C_Projects</strong></td>
+              </tr>
+              <tr>
+                <td>Lab manual code syntax</td>
+                <td>Copying boilerplate manually</td>
+                <td><strong>10 built-in university DSA templates</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Section: First Time Termux Setup -->
+      <section id="termux-setup">
+        <h2>First Time Termux Setup</h2>
+        <p>If you have never used Termux before, follow these steps in order.</p>
+
+        <div class="callout callout-danger">
+          <p><strong>Do not install Termux from Google Play Store.</strong> The Play Store build stopped receiving updates in 2020 due to Google SDK policy changes. Running <code>pkg install</code> on the Play Store build will fail with repository errors. Always install Termux from F-Droid or GitHub Releases.</p>
+        </div>
+
+        <div class="step-card">
+          <div class="step-header">
+            <span class="step-num">1</span>
+            <span class="step-title">Install Termux from F-Droid</span>
+          </div>
+          <p>Download the official APK from F-Droid: <a href="https://f-droid.org/packages/com.termux/" target="_blank" rel="noopener" style="color: var(--accent-cyan);">f-droid.org/packages/com.termux</a>. Install the APK and launch Termux.</p>
+        </div>
+
+        <div class="step-card">
+          <div class="step-header">
+            <span class="step-num">2</span>
+            <span class="step-title">Grant Storage Access</span>
+          </div>
+          <p>Run this command inside Termux:</p>
+          <div class="code-wrapper">
+            <div class="code-header">
+              <span>bash</span>
+              <button class="copy-btn">Copy</button>
+            </div>
+            <pre><code>termux-setup-storage</code></pre>
+          </div>
+          <p>Android will show a popup asking for permission. Tap <strong>Allow</strong>. This lets ByteC save your programs to your phone's main storage so your files remain safe even if you uninstall Termux.</p>
+        </div>
+
+        <div class="step-card">
+          <div class="step-header">
+            <span class="step-num">3</span>
+            <span class="step-title">Run the 1-Click Installer</span>
+          </div>
+          <p>Copy the installer command and paste it into Termux:</p>
+          <div class="code-wrapper">
+            <div class="code-header">
+              <span>bash</span>
+              <button class="copy-btn">Copy</button>
+            </div>
+            <pre><code>curl -sL https://raw.githubusercontent.com/0xOpCode/ByteC/main/install.sh | bash</code></pre>
+          </div>
+          <p>To paste in Termux: <strong>long press anywhere on the black terminal screen</strong> and tap <strong>PASTE</strong>. Then press Enter on your keyboard.</p>
+        </div>
+
+        <div class="step-card">
+          <div class="step-header">
+            <span class="step-num">4</span>
+            <span class="step-title">Reload Shell</span>
+          </div>
+          <p>When the installer completes, type:</p>
+          <div class="code-wrapper">
+            <div class="code-header">
+              <span>bash</span>
+              <button class="copy-btn">Copy</button>
+            </div>
+            <pre><code>source ~/.bashrc</code></pre>
+          </div>
+          <p>You will see the ByteC banner and a 2-row touch toolbar with arrows and programming symbols above your keyboard.</p>
+        </div>
+      </section>
+
+      <!-- Section: Creating Files -->
+      <section id="create-code">
+        <h2>Creating Programs (<code>cnew</code>)</h2>
+        <p>The <code>cnew</code> command creates a clean C or C++ file with standard headers and opens it directly in Neovim.</p>
+
+        <div class="code-wrapper">
+          <div class="code-header">
+            <span>bash</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code>cnew lab1.c
+cnew test.cpp</code></pre>
+        </div>
+
+        <p>If you run <code>cnew</code> without arguments, it asks for a filename so you do not need to retype the command on mobile touch keyboards.</p>
+
+        <h3>Using Built-In Lab Templates</h3>
+        <p>College courses follow standard data structures assignments. You can start with full, tested implementations using the <code>-t</code> flag:</p>
+
+        <div class="code-wrapper">
+          <div class="code-header">
+            <span>bash</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code>cnew lab2.c -t linkedlist
+cnew lab3.c -t stack
+cnew lab4.c -t sort</code></pre>
+        </div>
+      </section>
+
+      <!-- Section: Run Code -->
+      <section id="run-code">
+        <h2>Compiling & Running (<code>crun</code>)</h2>
+        <p>In standard Linux, running a C program requires two commands: <code>clang file.c -o file</code> followed by <code>./file</code>. ByteC combines this into one command and measures compile and runtime in milliseconds.</p>
+
+        <div class="code-wrapper">
+          <div class="code-header">
+            <span>bash</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code>crun lab1.c</code></pre>
+        </div>
+
+        <h3>Automating Program Input (scanf)</h3>
+        <p>Typing inputs every time you test a program gets slow. Create a text file with your test inputs (for example <code>input.txt</code>) and pass it to <code>crun</code> with <code>-i</code>:</p>
+
+        <div class="code-wrapper">
+          <div class="code-header">
+            <span>bash</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code>crun lab1.c -i input.txt</code></pre>
+        </div>
+
+        <h3>Passing Command Line Arguments</h3>
+        <div class="code-wrapper">
+          <div class="code-header">
+            <span>bash</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code>crun lab1.c 10 20 "test"</code></pre>
+        </div>
+
+        <h3>Student Error Tips</h3>
+        <p>When code fails to compile, <code>crun</code> inspects compiler output and prints tips for common mistakes, such as missing semicolons, undeclared variables, or missing header files.</p>
+      </section>
+
+      <!-- Section: Neovim Guide -->
+      <section id="nvim-guide">
+        <h2>Neovim Survival Guide</h2>
+        <p>ByteC bundles a pre-configured Neovim IDE setup (<code>0xOpCode/nvim</code>). If you have never used Vim or Neovim before, learn these core rules to avoid getting stuck.</p>
+
+        <div class="callout callout-warning">
+          <p><strong>Neovim uses modes:</strong> When you open a file, you are in <strong>Normal Mode</strong>. Pressing keyboard letters runs editor commands, not text insertion. Press <strong>i</strong> to enter <strong>Insert Mode</strong> and start typing code. Press <strong>Esc</strong> to return to Normal Mode.</p>
+        </div>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Action</th>
+                <th>Shortcut</th>
+                <th>What it does</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Run program</strong></td>
+                <td><code>&lt;Space&gt; + r</code></td>
+                <td>Saves, auto-formats in Allman style, compiles, and runs in full screen</td>
+              </tr>
+              <tr>
+                <td><strong>Start typing</strong></td>
+                <td><code>i</code></td>
+                <td>Switches to Insert Mode so keyboard keys type characters</td>
+              </tr>
+              <tr>
+                <td><strong>Stop typing</strong></td>
+                <td><code>ESC</code></td>
+                <td>Returns to Normal Mode</td>
+              </tr>
+              <tr>
+                <td><strong>Save file</strong></td>
+                <td><code>Ctrl + s</code></td>
+                <td>Saves and formats current file</td>
+              </tr>
+              <tr>
+                <td><strong>Save & Quit</strong></td>
+                <td><code>:wq</code> + <code>Enter</code></td>
+                <td>Writes changes to storage and closes editor</td>
+              </tr>
+              <tr>
+                <td><strong>Quit without saving</strong></td>
+                <td><code>:q!</code> + <code>Enter</code></td>
+                <td>Discards edits and returns to terminal</td>
+              </tr>
+              <tr>
+                <td><strong>Undo / Redo</strong></td>
+                <td><code>Ctrl + z</code> / <code>Ctrl + y</code></td>
+                <td>Undoes or redoes last edit</td>
+              </tr>
+              <tr>
+                <td><strong>Terminal overlay</strong></td>
+                <td><code>Ctrl + ~</code> or <code>Ctrl + j</code></td>
+                <td>Toggles a floating shell terminal inside editor</td>
+              </tr>
+              <tr>
+                <td><strong>File browser</strong></td>
+                <td><code>&lt;Space&gt; + e</code></td>
+                <td>Toggles sidebar file directory tree</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Section: Touch Keys -->
+      <section id="touch-keys">
+        <h2>Touch Navigation Bar</h2>
+        <p>ByteC configures a custom 2-row toolbar directly above your phone's on-screen keyboard:</p>
+
+        <div class="code-wrapper">
+          <div class="code-header">
+            <span>Touch Row Layout</span>
+          </div>
+          <pre><code>Row 1: [ ESC   | TAB  | CTRL | ALT | { | } | ( | ) ]
+Row 2: [ LEFT  | DOWN | UP   | RIGHT | " | ; | / | - ]</code></pre>
+        </div>
+
+        <p>Use the arrow keys (<code>LEFT</code>, <code>DOWN</code>, <code>UP</code>, <code>RIGHT</code>) to move your cursor without fighting phone touch selection. Tap <code>{ } ( ) ; "</code> directly without switching mobile keyboard sub-panels.</p>
+      </section>
+
+      <!-- Section: Templates -->
+      <section id="templates">
+        <h2>DSA & Lab Templates</h2>
+        <p>ByteC includes 10 university C lab templates with standard comments and interactive menu loops:</p>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Template Name</th>
+                <th>Command</th>
+                <th>Covers</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>hello</code></td>
+                <td><code>cnew lab.c -t hello</code></td>
+                <td>Main function, argument counting, basic printing</td>
+              </tr>
+              <tr>
+                <td><code>linkedlist</code></td>
+                <td><code>cnew lab.c -t linkedlist</code></td>
+                <td>Node creation, insertion at end, node deletion, memory free</td>
+              </tr>
+              <tr>
+                <td><code>stack</code></td>
+                <td><code>cnew lab.c -t stack</code></td>
+                <td>Push, pop, peek, overflow, and underflow handling</td>
+              </tr>
+              <tr>
+                <td><code>queue</code></td>
+                <td><code>cnew lab.c -t queue</code></td>
+                <td>Circular queue enqueue, dequeue, empty/full checks</td>
+              </tr>
+              <tr>
+                <td><code>binarytree</code></td>
+                <td><code>cnew lab.c -t binarytree</code></td>
+                <td>Binary Search Tree insertion, search, in/pre/post traversals</td>
+              </tr>
+              <tr>
+                <td><code>sort</code></td>
+                <td><code>cnew lab.c -t sort</code></td>
+                <td>Bubble sort, Selection sort, Insertion sort</td>
+              </tr>
+              <tr>
+                <td><code>matrix</code></td>
+                <td><code>cnew lab.c -t matrix</code></td>
+                <td>2D Array addition and matrix multiplication</td>
+              </tr>
+              <tr>
+                <td><code>fileio</code></td>
+                <td><code>cnew lab.c -t fileio</code></td>
+                <td>File open, line-by-line reading, file writing</td>
+              </tr>
+              <tr>
+                <td><code>pointers</code></td>
+                <td><code>cnew lab.c -t pointers</code></td>
+                <td>Pass by reference, dynamic arrays with <code>malloc</code> and <code>free</code></td>
+              </tr>
+              <tr>
+                <td><code>strings</code></td>
+                <td><code>cnew lab.c -t strings</code></td>
+                <td>String length, copy, compare, reverse without <code>string.h</code></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Section: Multi-File Projects -->
+      <section id="multi-file">
+        <h2>Multi-File Projects (<code>cbuild</code>)</h2>
+        <p>When assignments grow beyond one file, run <code>cbuild</code> to compile all source files in your current folder:</p>
+
+        <div class="code-wrapper">
+          <div class="code-header">
+            <span>bash</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code>cbuild</code></pre>
+        </div>
+
+        <p>This finds every <code>.c</code> or <code>.cpp</code> file, compiles with <code>-Wall -Wextra -O2 -lm</code>, and produces an executable named <code>app</code>. Run it with <code>./app</code>.</p>
+
+        <p>To compile specific files to a custom binary:</p>
+        <div class="code-wrapper">
+          <div class="code-header">
+            <span>bash</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code>cbuild main.c utils.c -o mygame
+cbuild clean   # Deletes *.out, *.o, and app binaries</code></pre>
+        </div>
+      </section>
+
+      <!-- Section: Formatting -->
+      <section id="format">
+        <h2>Code Formatting (<code>cformat</code>)</h2>
+        <p>Format source code in-place with college Allman bracket formatting:</p>
+
+        <div class="code-wrapper">
+          <div class="code-header">
+            <span>bash</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code>cformat lab1.c
+cformat --all               # Formats all files in folder
+cformat -s google lab1.c    # Formats with Google style</code></pre>
+        </div>
+      </section>
+
+      <!-- Section: Debugging -->
+      <section id="debug">
+        <h2>Guided Debugging (<code>cdebug</code>)</h2>
+        <p>Debugging with raw GDB confuses beginners. The <code>cdebug</code> command compiles your code with debug symbols (<code>-g -O0</code>), prints an interactive cheat sheet, and launches GDB:</p>
+
+        <div class="code-wrapper">
+          <div class="code-header">
+            <span>bash</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code>cdebug lab1.c</code></pre>
+        </div>
+
+        <h3>Quick GDB Commands</h3>
+        <ul>
+          <li><code>b main</code> - Breakpoint at main function</li>
+          <li><code>r</code> - Run program</li>
+          <li><code>n</code> - Step to next line</li>
+          <li><code>p myvar</code> - Print value of variable</li>
+          <li><code>bt</code> - Backtrace stack on segmentation faults</li>
+          <li><code>q</code> - Quit debugger</li>
+        </ul>
+      </section>
+
+      <!-- Section: Testing -->
+      <section id="test">
+        <h2>Automated Lab Testing (<code>ctest</code>)</h2>
+        <p>Verify your solution against test cases before submitting lab work.</p>
+
+        <p>Create a file named <code>test.txt</code> with this format:</p>
+        <div class="code-wrapper">
+          <div class="code-header">
+            <span>test.txt</span>
+          </div>
+          <pre><code>--- INPUT ---
+10 20
+--- EXPECTED ---
+30</code></pre>
+        </div>
+
+        <p>Run the test:</p>
+        <div class="code-wrapper">
+          <div class="code-header">
+            <span>bash</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code>ctest lab1.c test.txt</code></pre>
+        </div>
+
+        <p>If the output matches, <code>ctest</code> prints green confirmation. If output differs, it displays expected output vs actual output with line differences.</p>
+      </section>
+
+      <!-- Section: ByteC Manager -->
+      <section id="manager">
+        <h2>ByteC Manager Commands</h2>
+        
+        <h3>System Health Check (<code>bytec doctor</code>)</h3>
+        <p>Audits installed compilers, storage links, git setup, and disk space. Suggests exact commands for any missing tools.</p>
+        <div class="code-wrapper">
+          <div class="code-header">
+            <span>bash</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code>bytec doctor</code></pre>
+        </div>
+
+        <h3>Offline C Cheatsheet (<code>bytec cheatsheet</code>)</h3>
+        <div class="code-wrapper">
+          <div class="code-header">
+            <span>bash</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code>bytec cheatsheet printf
+bytec cheatsheet pointers
+bytec cheatsheet strings
+bytec cheatsheet loops
+bytec cheatsheet dsa</code></pre>
+        </div>
+
+        <h3>Share Code via Link (<code>bytec share</code>)</h3>
+        <p>Uploads your C file to a secure paste service and copies the link to your Android clipboard:</p>
+        <div class="code-wrapper">
+          <div class="code-header">
+            <span>bash</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code>bytec share lab1.c</code></pre>
+        </div>
+
+        <h3>Backup to Phone Storage (<code>bytec backup</code>)</h3>
+        <p>Archives all code inside <code>~/c_projects</code> into a compressed archive inside <code>/sdcard/Download/</code>:</p>
+        <div class="code-wrapper">
+          <div class="code-header">
+            <span>bash</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code>bytec backup</code></pre>
+        </div>
+
+        <h3>Codebase Statistics (<code>bytec stats</code>)</h3>
+        <div class="code-wrapper">
+          <div class="code-header">
+            <span>bash</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code>bytec stats</code></pre>
+        </div>
+      </section>
+
+      <!-- Section: FAQ -->
+      <section id="faq">
+        <h2>Common Doubts & FAQ</h2>
+
+        <h3>1. Where are my files stored on my phone?</h3>
+        <p>Your programs live in <code>~/c_projects</code>. This directory links to <code>/sdcard/C_Projects</code>. You can open any Android file manager app (Google Files, Solid Explorer, ZArchiver) and view your <code>.c</code> files inside your phone's internal storage.</p>
+
+        <h3>2. My keyboard disappeared in Termux. How do I get it back?</h3>
+        <p>Tap anywhere on the terminal screen. If it does not appear, swipe down from the top status bar or hold the phone's <strong>Volume Up</strong> button and press <strong>Q</strong>.</p>
+
+        <h3>3. How do I copy and paste in Termux?</h3>
+        <p>Long press anywhere on the black terminal screen. A menu appears with <strong>COPY</strong>, <strong>PASTE</strong>, and <strong>MORE</strong>.</p>
+
+        <h3>4. How do I exit Neovim?</h3>
+        <p>Press <code>ESC</code> on your touch toolbar, type <code>:wq</code>, and press Enter to save and quit. To exit without saving, type <code>:q!</code> and press Enter.</p>
+
+        <h3>5. Why do <code>gcc</code> and <code>g++</code> work in Termux?</h3>
+        <p>Standard Termux lacks GCC. ByteC adds lightweight binary wrappers for <code>gcc</code> and <code>g++</code> that translate commands directly to Clang, so lab manual commands compile without modification.</p>
+
+        <h3>6. Can I use an external keyboard with my phone?</h3>
+        <p>Yes. Connect any USB keyboard via an OTG adapter, or pair a Bluetooth keyboard. All standard terminal and Neovim shortcuts (<code>Ctrl + S</code>, <code>Ctrl + Z</code>) work as expected.</p>
+
+        <h3>7. Does ByteC require active internet?</h3>
+        <p>Only during initial installation. After install, compilers, Neovim, templates, cheatsheets, and formatters work completely offline.</p>
+      </section>
+
+      <!-- Section: Uninstall -->
+      <section id="uninstall">
+        <h2>Uninstalling ByteC</h2>
+        <p>To remove ByteC while keeping your source code safe:</p>
+        <div class="code-wrapper">
+          <div class="code-header">
+            <span>bash</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code>bytec uninstall</code></pre>
+        </div>
+        <p>This removes the CLI binaries, touch key configurations, and shell hooks. Your source code inside <code>~/c_projects</code> remains untouched.</p>
+      </section>
+
+      <footer style="margin-top: 4rem; padding-top: 2rem; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 0.85rem; text-align: center;">
+        <p>ByteC is open source software released under the MIT License.</p>
+        <p>Maintained by <a href="https://github.com/0xOpCode" target="_blank" rel="noopener" style="color: var(--accent-cyan); text-decoration: none;">0xOpCode</a>.</p>
+      </footer>
+
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

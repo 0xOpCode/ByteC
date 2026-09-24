@@ -1,12 +1,21 @@
 #!/bin/sh
 # ==============================================================================
-# 🛡️ ByteC — Smart GCC Wrapper for Termux / Clang
-# Forwards college gcc commands directly to clang
+# ByteC: GCC Wrapper for Termux and Clang
+# Forwards college lab gcc commands to clang
 # ==============================================================================
+
+if [ "$1" = "--bytec-info" ]; then
+    echo "ByteC GCC Wrapper -> forwarding to clang"
+    exit 0
+fi
 
 if ! command -v clang >/dev/null 2>&1; then
     echo "❌ Error: 'clang' compiler is not installed." >&2
-    echo "💡 Run: pkg install clang" >&2
+    if [ -n "$PREFIX" ] && [ -d "$PREFIX" ] && echo "$PREFIX" | grep -q "com.termux"; then
+        echo "💡 Run: pkg install clang" >&2
+    else
+        echo "💡 Install clang: sudo apt install clang (or your system package manager)" >&2
+    fi
     exit 1
 fi
 

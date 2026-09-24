@@ -1,0 +1,99 @@
+#!/bin/sh
+# ==============================================================================
+# ByteC: Multi-File Project Builder (cbuild)
+# Compiles all or specified C/C++ files into an executable
+# ==============================================================================
+
+show_help() {
+    echo "ByteC Project Builder (cbuild)"
+    echo "Usage:"
+    echo "  cbuild                        Compile all .c or .cpp in current folder"
+    echo "  cbuild <files...> -o <target> Compile specific files into binary"
+    echo "  cbuild clean                  Remove build artifacts (*.out, *.o, app)"
+    echo "  cbuild -h | --help            Show this help guide"
+    exit 0
+}
+
+if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+    show_help
+fi
+
+if [ "$1" = "clean" ]; then
+    echo "Cleaning build artifacts..."
+    rm -f *.o *.out app a.out 2>/dev/null
+    echo "Clean complete."
+    exit 0
+fi
+
+# Detect C vs C++
+IS_CPP=0
+OUTPUT="app"
+FILES=""
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -o)
+            shift
+            OUTPUT="$1"
+            ;;
+        *.cpp|*.cc|*.cxx)
+            IS_CPP=1
+            FILES="$FILES $1"
+            ;;
+        *.c)
+            FILES="$FILES $1"
+            ;;
+        *)
+            FILES="$FILES $1"
+            ;;
+    esac
+    shift
+done
+
+# If no files specified, auto-detect in current directory
+if [ -z "$FILES" ]; then
+    C_FILES=$(ls *.c 2>/dev/null)
+    CPP_FILES=$(ls *.cpp *.cc *.cxx 2>/dev/null)
+
+    if [ -n "$CPP_FILES" ]; then
+        IS_CPP=1
+        FILES="$CPP_FILES"
+    elif [ -n "$C_FILES" ]; then
+        FILES="$C_FILES"
+    else
+        echo "Error: No .c or .cpp files found in current directory." >&2
+        echo "Create one with: cnew main.c" >&2
+        exit 1
+    fi
+fi
+
+if [ $IS_CPP -eq 1 ]; then
+    COMPILER="clang++"
+    FLAGS="-Wall -Wextra -O2 -std=c++20"
+else
+    COMPILER="clang"
+    FLAGS="-Wall -Wextra -O2 -lm"
+fi
+
+echo "Building project ($COMPILER)..."
+echo "  Sources:$FILES"
+echo "  Output:  $OUTPUT"
+
+START_MS=$(date +%s%3N 2>/dev/null || date +%s)
+$COMPILER $FLAGS $FILES -o "$OUTPUT"
+STATUS=$?
+END_MS=$(date +%s%3N 2>/dev/null || date +%s)
+
+if [ $STATUS -eq 0 ]; then
+    echo "----------------------------------------------"
+    echo "Build Complete: $OUTPUT"
+    if [ -f "$OUTPUT" ]; then
+        SIZE=$(ls -lh "$OUTPUT" | awk '{print $5}')
+        echo "  Binary size: $SIZE"
+    fi
+    echo "Run with: ./$OUTPUT"
+    echo "----------------------------------------------"
+else
+    echo "Build failed with exit code $STATUS" >&2
+    exit $STATUS
+fi

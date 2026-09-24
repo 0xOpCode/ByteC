@@ -1,50 +1,511 @@
 #!/bin/sh
 # ==============================================================================
-# 🛡️ ByteC — Master CLI Manager
-# Usage: bytec [update | status | help]
+# ByteC: Master Manager CLI
+# Usage: bytec [command]
 # ==============================================================================
 
 BYTEC_DIR="${HOME}/.bytec"
 NVIM_DIR="${HOME}/.config/nvim"
+TEMPLATE_DIR="$BYTEC_DIR/config/templates"
+
+get_version() {
+    if [ -f "$BYTEC_DIR/VERSION" ]; then
+        cat "$BYTEC_DIR/VERSION" | tr -d '[:space:]'
+    else
+        echo "1.1.0"
+    fi
+}
+
+cmd_version() {
+    echo "ByteC Version $(get_version)"
+    echo "Platform: $(uname -s) $(uname -m)"
+    if [ -n "$PREFIX" ] && [ -d "$PREFIX" ] && echo "$PREFIX" | grep -q "com.termux"; then
+        echo "Environment: Native Android Termux"
+    else
+        echo "Environment: Standard Linux"
+    fi
+}
+
+cmd_doctor() {
+    echo "ByteC Environment Diagnostics"
+    echo "----------------------------------------------"
+    ERRORS=0
+    WARNINGS=0
+
+    # 1. Compiler (Clang)
+    if command -v clang >/dev/null 2>&1; then
+        CLANG_VER=$(clang --version 2>/dev/null | head -n 1)
+        echo "Clang Compiler:  Installed ($CLANG_VER)"
+    else
+        echo "Clang Compiler:  Missing"
+        echo "  Fix: pkg install clang"
+        ERRORS=$((ERRORS + 1))
+    fi
+
+    # 2. C++ Compiler (Clang++)
+    if command -v clang++ >/dev/null 2>&1; then
+        echo "Clang++ (C++):   Installed"
+    else
+        echo "Clang++ (C++):   Missing"
+        ERRORS=$((ERRORS + 1))
+    fi
+
+    # 3. Build Tools
+    if command -v make >/dev/null 2>&1; then
+        echo "Make:            Installed"
+    else
+        echo "Make:            Missing (Needed for Makefiles)"
+        echo "  Fix: pkg install make"
+        WARNINGS=$((WARNINGS + 1))
+    fi
+
+    if command -v cmake >/dev/null 2>&1; then
+        echo "CMake:           Installed"
+    else
+        echo "CMake:           Missing"
+        echo "  Fix: pkg install cmake"
+        WARNINGS=$((WARNINGS + 1))
+    fi
+
+    # 4. Debugger (GDB)
+    if command -v gdb >/dev/null 2>&1; then
+        echo "GDB Debugger:    Installed"
+    else
+        echo "GDB Debugger:    Missing (Needed for cdebug)"
+        echo "  Fix: pkg install gdb"
+        WARNINGS=$((WARNINGS + 1))
+    fi
+
+    # 5. Formatter (clang-format)
+    if command -v clang-format >/dev/null 2>&1; then
+        echo "clang-format:    Installed"
+    else
+        echo "clang-format:    Missing (Needed for cformat)"
+        echo "  Fix in Termux: pkg install clang-tools"
+        WARNINGS=$((WARNINGS + 1))
+    fi
+
+    # 6. Neovim IDE
+    if command -v nvim >/dev/null 2>&1; then
+        NV_VER=$(nvim --version 2>/dev/null | head -n 1)
+        echo "Neovim IDE:      Installed ($NV_VER)"
+    else
+        echo "Neovim IDE:      Missing (Falls back to nano)"
+        echo "  Fix: pkg install neovim"
+        WARNINGS=$((WARNINGS + 1))
+    fi
+
+    # 7. Git
+    if command -v git >/dev/null 2>&1; then
+        GIT_NAME=$(git config --global user.name 2>/dev/null)
+        if [ -n "$GIT_NAME" ]; then
+            echo "Git:             Configured (User: $GIT_NAME)"
+        else
+            echo "Git:             Installed, username not set"
+            echo "  Fix: git config --global user.name \"Your Name\""
+            WARNINGS=$((WARNINGS + 1))
+        fi
+    else
+        echo "Git:             Missing"
+        ERRORS=$((ERRORS + 1))
+    fi
+
+    # 8. Storage & Workspace
+    if [ -d "$HOME/c_projects" ]; then
+        TARGET=$(readlink -f "$HOME/c_projects" 2>/dev/null || echo "local")
+        echo "Workspace:       ~/c_projects -> $TARGET"
+    else
+        echo "Workspace:       ~/c_projects missing"
+        echo "  Fix: mkdir -p ~/c_projects"
+        WARNINGS=$((WARNINGS + 1))
+    fi
+
+    # 9. Free disk space
+    AVAIL_MB=$(df -m "$HOME" 2>/dev/null | awk 'NR==2 {print $4}')
+    if [ -n "$AVAIL_MB" ]; then
+        if [ "$AVAIL_MB" -gt 300 ]; then
+            echo "Free Disk Space: ${AVAIL_MB}MB available"
+        else
+            echo "Free Disk Space: Low (${AVAIL_MB}MB available)"
+            WARNINGS=$((WARNINGS + 1))
+        fi
+    fi
+
+    echo "----------------------------------------------"
+    if [ $ERRORS -eq 0 ] && [ $WARNINGS -eq 0 ]; then
+        echo "Diagnostics pass. Ready to compile and run code."
+    elif [ $ERRORS -eq 0 ]; then
+        echo "Environment working with $WARNINGS recommendation(s)."
+    else
+        echo "Found $ERRORS critical issue(s) and $WARNINGS warning(s). Follow instructions above."
+    fi
+}
+
+cmd_template() {
+    NAME="$1"
+    TARGET="$2"
+
+    if [ -z "$NAME" ] || [ "$NAME" = "list" ] || [ "$NAME" = "-l" ]; then
+        echo "Available Lab and DSA Templates:"
+        echo "----------------------------------------------"
+        echo "  hello       - Hello World with argument parsing"
+        echo "  linkedlist  - Singly linked list (insert, delete, display)"
+        echo "  stack       - Array-based stack (push, pop, peek)"
+        echo "  queue       - Circular queue operations"
+        echo "  binarytree  - Binary search tree (traversals, search)"
+        echo "  sort        - Bubble, Selection, and Insertion sorts"
+        echo "  matrix      - 2D matrix addition and multiplication"
+        echo "  fileio      - File read and write operations"
+        echo "  pointers    - Dynamic memory and pointer swap"
+        echo "  strings     - Custom string manipulation functions"
+        echo "----------------------------------------------"
+        echo "Usage: bytec template <name> [filename.c]"
+        echo "Example: bytec template linkedlist lab2.c"
+        return
+    fi
+
+    TFILE="$TEMPLATE_DIR/${NAME}.c"
+    if [ ! -f "$TFILE" ]; then
+        echo "Template '$NAME' not found."
+        echo "Run 'bytec template list' to see available templates."
+        return 1
+    fi
+
+    if [ -z "$TARGET" ]; then
+        TARGET="${NAME}.c"
+    fi
+
+    if [ -f "$TARGET" ]; then
+        echo "File '$TARGET' exists. Opening in editor..."
+    else
+        cp "$TFILE" "$TARGET"
+        echo "Created '$TARGET' from template '$NAME'."
+    fi
+
+    command -v nvim >/dev/null 2>&1 && exec nvim "$TARGET" || exec nano "$TARGET"
+}
+
+cmd_cheatsheet() {
+    TOPIC="$1"
+    case "$TOPIC" in
+        printf|format)
+            cat << 'EOF'
+C Cheatsheet: printf and scanf Format Specifiers
+----------------------------------------------
+  %d, %i    Signed decimal integer (int)
+  %u        Unsigned decimal integer (unsigned int)
+  %f        Floating point number (float, double)
+  %lf       Double precision float (double for scanf)
+  %c        Single character (char)
+  %s        String of characters (char*)
+  %p        Pointer address (hexadecimal)
+  %x, %X    Hexadecimal integer
+  %%        Literal percent sign
+
+Modifiers:
+  %02d      Zero padded (e.g. 05)
+  %.2f      Float rounded to 2 decimal places
+EOF
+            ;;
+        pointers|ptr)
+            cat << 'EOF'
+C Cheatsheet: Pointers and Memory
+----------------------------------------------
+  int a = 10;
+  int *p = &a;     // p stores address of a
+  *p = 20;         // Dereference: changes a to 20
+
+Dynamic Allocation (<stdlib.h>):
+  int *arr = (int *)malloc(n * sizeof(int));
+  int *arr = (int *)calloc(n, sizeof(int)); // Zero-initialized
+  arr = (int *)realloc(arr, new_size * sizeof(int));
+  free(arr);       // Free allocation
+  arr = NULL;      // Clear dangling pointer
+EOF
+            ;;
+        strings|str)
+            cat << 'EOF'
+C Cheatsheet: Common <string.h> Functions
+----------------------------------------------
+  strlen(s)        Length of string (excluding \0)
+  strcpy(dest, src) Copy src into dest
+  strncpy(dest, src, n) Copy up to n bytes
+  strcat(dest, src) Append src to dest
+  strcmp(s1, s2)   Compare strings (0 if equal)
+  strchr(s, 'c')   Find first occurrence of char
+  strstr(s, "sub") Find first occurrence of substring
+EOF
+            ;;
+        loops|control)
+            cat << 'EOF'
+C Cheatsheet: Loops and Flow Control
+----------------------------------------------
+For Loop:
+  for (int i = 0; i < n; i++) { ... }
+
+While Loop:
+  while (condition) { ... }
+
+Do-While:
+  do { ... } while (condition);
+
+Switch Case:
+  switch (choice) {
+      case 1: ...; break;
+      default: ...;
+  }
+EOF
+            ;;
+        dsa|structures)
+            cat << 'EOF'
+C Cheatsheet: Structs and Nodes
+----------------------------------------------
+Struct Definition:
+  typedef struct Node {
+      int data;
+      struct Node *next;
+  } Node;
+
+Allocate Node:
+  Node *newNode = (Node *)malloc(sizeof(Node));
+  newNode->data = 10;
+  newNode->next = NULL;
+EOF
+            ;;
+        keys|neovim|nvim)
+            cat << 'EOF'
+ByteC Neovim Shortcuts
+----------------------------------------------
+  <Space> + r   Save, format (Allman), compile, and run
+  Ctrl + s      Save current file
+  Ctrl + z      Undo
+  Ctrl + y      Redo
+  Ctrl + Enter  Insert newline below
+  Ctrl + d      Select word under cursor
+  Ctrl + ~      Toggle floating terminal
+  <Space> + e   Toggle file explorer tree
+  <Space> + ff  Search files
+EOF
+            ;;
+        *)
+            echo "ByteC Offline C Guide"
+            echo "----------------------------------------------"
+            echo "Available topics:"
+            echo "  bytec cheatsheet printf     - Format specifiers and modifiers"
+            echo "  bytec cheatsheet pointers   - Pointers, malloc, free, realloc"
+            echo "  bytec cheatsheet strings    - Standard string.h functions"
+            echo "  bytec cheatsheet loops      - for, while, do-while, switch"
+            echo "  bytec cheatsheet dsa        - Structs and linked list nodes"
+            echo "  bytec cheatsheet keys       - Neovim editor shortcuts"
+            echo "----------------------------------------------"
+            ;;
+    esac
+}
+
+cmd_stats() {
+    PROJ_DIR="$HOME/c_projects"
+    echo "ByteC Workspace Statistics"
+    echo "----------------------------------------------"
+    if [ ! -d "$PROJ_DIR" ]; then
+        echo "No projects directory found at ~/c_projects."
+        return
+    fi
+
+    TOTAL_C=$(find "$PROJ_DIR" -type f -name "*.c" 2>/dev/null | wc -l)
+    TOTAL_CPP=$(find "$PROJ_DIR" -type f \( -name "*.cpp" -o -name "*.cc" \) 2>/dev/null | wc -l)
+    TOTAL_H=$(find "$PROJ_DIR" -type f -name "*.h" 2>/dev/null | wc -l)
+    TOTAL_LINES=$(find "$PROJ_DIR" -type f \( -name "*.c" -o -name "*.cpp" -o -name "*.h" \) -exec cat {} + 2>/dev/null | wc -l)
+    TOTAL_SIZE=$(du -sh "$PROJ_DIR" 2>/dev/null | awk '{print $1}')
+
+    echo "  Total C files:      $TOTAL_C"
+    echo "  Total C++ files:    $TOTAL_CPP"
+    echo "  Total Header files: $TOTAL_H"
+    echo "  Total Lines of Code: $TOTAL_LINES lines"
+    echo "  Workspace Size:     $TOTAL_SIZE ($PROJ_DIR)"
+    echo "----------------------------------------------"
+}
+
+cmd_share() {
+    FILE="$1"
+    if [ -z "$FILE" ] || [ ! -f "$FILE" ]; then
+        echo "Error: Specify a file to share."
+        echo "Usage: bytec share lab1.c"
+        return 1
+    fi
+
+    echo "Uploading '$FILE' to paste service..."
+    URL=""
+    if command -v nc >/dev/null 2>&1; then
+        URL=$(nc termbin.com 9999 < "$FILE" 2>/dev/null | tr -d '[:space:]\0')
+    fi
+
+    if [ -z "$URL" ] && command -v curl >/dev/null 2>&1; then
+        URL=$(curl -s -F "clbin=@$FILE" https://clbin.com 2>/dev/null)
+    fi
+
+    if [ -n "$URL" ]; then
+        echo "----------------------------------------------"
+        echo "Link: $URL"
+        if command -v termux-clipboard-set >/dev/null 2>&1; then
+            echo "$URL" | termux-clipboard-set
+            echo "Copied link to clipboard."
+        fi
+        echo "----------------------------------------------"
+    else
+        echo "Upload failed. Check your internet connection or install netcat: pkg install netcat-openbsd"
+    fi
+}
+
+cmd_backup() {
+    PROJ_DIR="$HOME/c_projects"
+    DATE_STR=$(date "+%Y%m%d_%H%M%S")
+    BACKUP_NAME="bytec_backup_${DATE_STR}.tar.gz"
+
+    if [ ! -d "$PROJ_DIR" ]; then
+        echo "Directory ~/c_projects not found."
+        return 1
+    fi
+
+    DEST="$HOME/$BACKUP_NAME"
+    if [ -d "/sdcard/Download" ] && [ -w "/sdcard/Download" ]; then
+        DEST="/sdcard/Download/$BACKUP_NAME"
+    elif [ -d "/sdcard" ] && [ -w "/sdcard" ]; then
+        DEST="/sdcard/$BACKUP_NAME"
+    fi
+
+    echo "Archiving ~/c_projects to $DEST..."
+    tar -czf "$DEST" -C "$HOME" "c_projects" 2>/dev/null
+
+    if [ $? -eq 0 ]; then
+        SIZE=$(ls -lh "$DEST" | awk '{print $5}')
+        echo "Backup file created: $DEST ($SIZE)"
+    else
+        echo "Backup failed."
+    fi
+}
+
+cmd_restore() {
+    ARCHIVE="$1"
+    if [ -z "$ARCHIVE" ] || [ ! -f "$ARCHIVE" ]; then
+        echo "Error: Specify backup archive file (.tar.gz)"
+        echo "Usage: bytec restore /sdcard/Download/bytec_backup_*.tar.gz"
+        return 1
+    fi
+
+    echo "This unpacks projects into ~/c_projects."
+    printf "Proceed? (y/n): "
+    read -r CONFIRM
+    case "$CONFIRM" in
+        y|Y|yes)
+            tar -xzf "$ARCHIVE" -C "$HOME"
+            echo "Restored files to ~/c_projects"
+            ;;
+        *)
+            echo "Cancelled."
+            ;;
+    esac
+}
+
+cmd_tutorial() {
+    echo ""
+    echo "================================================================"
+    echo "ByteC 60-Second Quick Start Tutorial"
+    echo "================================================================"
+    echo "ByteC sets up C and C++ tools in native Termux."
+    echo ""
+    echo "Step 1: Create a file"
+    echo "  Run: cnew hello.c"
+    echo "  Or with template: cnew lab1.c -t linkedlist"
+    echo ""
+    echo "Step 2: Compile and Run"
+    echo "  Run: crun hello.c"
+    echo "  With automated input: crun lab1.c -i input.txt"
+    echo "  Or inside Neovim press: <Space> + r"
+    echo ""
+    echo "Step 3: Multi-file and Testing"
+    echo "  Multi-file build: cbuild"
+    echo "  Format code:      cformat hello.c"
+    echo "  Debug:            cdebug hello.c"
+    echo "  Run tests:        ctest hello.c test.txt"
+    echo ""
+    echo "Step 4: Sharing and Diagnostics"
+    echo "  Share with link:  bytec share hello.c"
+    echo "  Backup files:     bytec backup"
+    echo "  Check setup:      bytec doctor"
+    echo "================================================================"
+    echo ""
+}
+
+cmd_uninstall() {
+    echo "ByteC Uninstallation"
+    echo "----------------------------------------------"
+    echo "This removes ByteC CLI commands and shell configuration."
+    echo "Your code in ~/c_projects remains on disk."
+    echo ""
+    printf "Remove ByteC? (y/n): "
+    read -r CONFIRM
+    case "$CONFIRM" in
+        y|Y|yes)
+            echo "Removing ByteC files..."
+            BIN_DIR="$PREFIX/bin"
+            [ ! -d "$BIN_DIR" ] && BIN_DIR="${HOME}/.local/bin"
+            for cmd in gcc g++ cnew crun cbuild cformat cdebug ctest bytec; do
+                rm -f "$BIN_DIR/$cmd" 2>/dev/null
+                rm -f "${HOME}/.local/bin/$cmd" 2>/dev/null
+            done
+
+            for rc in "$HOME/.bashrc" "$HOME/.zshrc"; do
+                if [ -f "$rc" ]; then
+                    sed -i '/# >>> ByteC Integration >>>/,/# <<< ByteC Integration <<</d' "$rc" 2>/dev/null || true
+                fi
+            done
+
+            rm -rf "$BYTEC_DIR"
+
+            echo "ByteC removed."
+            echo "Your code remains intact at ~/c_projects."
+            ;;
+        *)
+            echo "Uninstallation cancelled."
+            ;;
+    esac
+}
 
 cmd_update() {
-    echo "🔄 Checking and pulling latest ByteC & Neovim updates..."
+    echo "Checking for updates..."
     
-    # 1. Update ByteC tools
     if [ -d "$BYTEC_DIR/.git" ]; then
-        echo "📦 Updating ByteC CLI tools..."
-        git -C "$BYTEC_DIR" pull --ff-only
+        echo "Updating ByteC tools..."
+        git -C "$BYTEC_DIR" pull --ff-only || true
     fi
 
-    # 2. Update Neovim C IDE Stack
     if [ -d "$NVIM_DIR/.git" ]; then
-        echo "💡 Updating Neovim configuration (0xOpCode/nvim)..."
-        git -C "$NVIM_DIR" pull --ff-only
-        echo "⚡ Syncing Neovim plugins in background..."
-        command -v nvim >/dev/null 2>&1 && nvim --headless "+Lazy! sync" +qa >/dev/null 2>&1
+        echo "Updating Neovim configuration..."
+        git -C "$NVIM_DIR" pull --ff-only || true
+        command -v nvim >/dev/null 2>&1 && nvim --headless "+Lazy! sync" +qa >/dev/null 2>&1 || true
     fi
 
-    # 3. Update .last_check
     mkdir -p "$BYTEC_DIR"
     date +%s > "$BYTEC_DIR/.last_check"
 
-    echo "✅ ByteC is up to date with the latest 0xOpCode stack!"
+    echo "Update complete. Version $(get_version)"
 }
 
 cmd_status() {
-    echo "🛡️ ByteC Environment Status"
-    echo "──────────────────────────────────────────────"
-    echo "• Clang version:  $(clang --version 2>/dev/null | head -n 1 || echo 'Not installed')"
-    echo "• Make version:   $(make --version 2>/dev/null | head -n 1 || echo 'Not installed')"
-    echo "• CMake version:  $(cmake --version 2>/dev/null | head -n 1 || echo 'Not installed')"
-    echo "• Neovim version: $(nvim --version 2>/dev/null | head -n 1 || echo 'Not installed')"
-    echo "──────────────────────────────────────────────"
+    echo "ByteC Environment Status (v$(get_version))"
+    echo "----------------------------------------------"
+    echo "Clang version:  $(clang --version 2>/dev/null | head -n 1 || echo 'Not installed')"
+    echo "Make version:   $(make --version 2>/dev/null | head -n 1 || echo 'Not installed')"
+    echo "CMake version:  $(cmake --version 2>/dev/null | head -n 1 || echo 'Not installed')"
+    echo "GDB version:    $(gdb --version 2>/dev/null | head -n 1 || echo 'Not installed')"
+    echo "Neovim version: $(nvim --version 2>/dev/null | head -n 1 || echo 'Not installed')"
+    echo "----------------------------------------------"
     if [ -d "$NVIM_DIR/.git" ]; then
         NVIM_COMMIT=$(git -C "$NVIM_DIR" rev-parse --short HEAD 2>/dev/null)
-        echo "• Neovim Commit:  $NVIM_COMMIT (0xOpCode/nvim)"
+        echo "Neovim Commit:  $NVIM_COMMIT (0xOpCode/nvim)"
     fi
     if [ -d "$HOME/c_projects" ]; then
-        echo "• C Projects Dir: ~/c_projects -> $(readlink -f "$HOME/c_projects" 2>/dev/null || echo 'local')"
+        echo "Workspace:      ~/c_projects -> $(readlink -f "$HOME/c_projects" 2>/dev/null || echo 'local')"
     fi
 }
 
@@ -52,46 +513,66 @@ cmd_check_silent() {
     mkdir -p "$BYTEC_DIR"
     LAST_CHECK=$(cat "$BYTEC_DIR/.last_check" 2>/dev/null || echo 0)
     NOW=$(date +%s)
-    # Check once every 24 hours (86400 seconds)
     if [ $((NOW - LAST_CHECK)) -gt 86400 ]; then
         date +%s > "$BYTEC_DIR/.last_check"
-        if [ -d "$NVIM_DIR/.git" ]; then
-            git -C "$NVIM_DIR" fetch origin main -q 2>/dev/null
-            LOCAL=$(git -C "$NVIM_DIR" rev-parse @ 2>/dev/null)
-            REMOTE=$(git -C "$NVIM_DIR" rev-parse @{u} 2>/dev/null)
+        if [ -d "$BYTEC_DIR/.git" ]; then
+            git -C "$BYTEC_DIR" fetch origin main -q 2>/dev/null || true
+            LOCAL=$(git -C "$BYTEC_DIR" rev-parse @ 2>/dev/null)
+            REMOTE=$(git -C "$BYTEC_DIR" rev-parse @{u} 2>/dev/null)
             if [ -n "$LOCAL" ] && [ -n "$REMOTE" ] && [ "$LOCAL" != "$REMOTE" ]; then
-                echo "✨ ByteC updates available! Run 'bytec update' to get the latest features."
+                echo "ByteC update available. Run 'bytec update'."
             fi
         fi
     fi
 }
 
 cmd_help() {
-    echo "🛡️ ByteC — Modern 1-Click C Environment for Android & Termux"
+    echo "ByteC CLI Commands (v$(get_version))"
     echo ""
-    echo "Commands:"
-    echo "  cnew <file.c>       Create new C file with clean boilerplate"
-    echo "  crun <file.c>       Fast 1-step compile, run, & timing"
-    echo "  gcc <file.c>        Smart compiler wrapper (calls clang)"
-    echo "  g++ <file.cpp>      Smart C++ compiler wrapper (calls clang++)"
-    echo "  bytec update        Pull latest Neovim & ByteC features from GitHub"
-    echo "  bytec status        Check installed tools & environment"
+    echo "Coding Commands:"
+    echo "  cnew <file.c>              Create new C file (or template: -t stack)"
+    echo "  crun <file.c>              Compile and run, input support (-i input.txt)"
+    echo "  cbuild                     Compile multi-file project into binary"
+    echo "  cformat <file.c>           Format code (Allman or Google style)"
+    echo "  cdebug <file.c>            Start guided GDB debugging session"
+    echo "  ctest <file.c> <test.txt>  Run test cases and verify output"
+    echo "  gcc / g++                  Compiler wrappers (forward to clang)"
     echo ""
-    echo "Neovim Essential Keys:"
-    echo "  <Space> + r         Save, format (Allman), compile & run in full window"
-    echo "  Ctrl + s            Save & format file"
-    echo "  Ctrl + z / Ctrl + y Undo / Redo"
-    echo "  Ctrl + Enter        Insert newline below"
-    echo "  Ctrl + Shift + Enter Insert newline above"
-    echo "  Ctrl + d            Select word under cursor"
-    echo "  Ctrl + ~ / Ctrl + j Toggle floating terminal"
-    echo "  Select text + (     Auto-wrap selected text in ()"
+    echo "Management:"
+    echo "  bytec doctor               Run diagnostic system check"
+    echo "  bytec template [name]      Browse and scaffold lab templates"
+    echo "  bytec cheatsheet [topic]   View offline C reference guide"
+    echo "  bytec share <file.c>       Share code online with web link"
+    echo "  bytec backup / restore     Backup or restore ~/c_projects"
+    echo "  bytec stats                View file counts and workspace size"
+    echo "  bytec tutorial             Interactive 60-second walkthrough"
+    echo "  bytec status               Inspect compiler and tool versions"
+    echo "  bytec update               Pull updates for ByteC and Neovim"
+    echo "  bytec version              Show ByteC version"
+    echo "  bytec uninstall            Remove ByteC installation"
+    echo ""
+    echo "Neovim Shortcuts:"
+    echo "  <Space> + r                Save, format, compile, and run"
+    echo "  Ctrl + s                   Save and format current file"
+    echo "  Ctrl + z / Ctrl + y        Undo / Redo"
+    echo "  Ctrl + ~ / Ctrl + j        Toggle floating terminal"
+    echo "  <Space> + e                Toggle file explorer tree"
 }
 
 case "$1" in
+    doctor) cmd_doctor ;;
+    version|-v|--version) cmd_version ;;
+    template|tpl) shift; cmd_template "$@" ;;
+    cheatsheet|cheat) shift; cmd_cheatsheet "$@" ;;
+    stats) cmd_stats ;;
+    share) shift; cmd_share "$@" ;;
+    backup) cmd_backup ;;
+    restore) shift; cmd_restore "$@" ;;
+    tutorial|quickstart) cmd_tutorial ;;
+    uninstall) cmd_uninstall ;;
     update) cmd_update ;;
     status) cmd_status ;;
     check)  cmd_check_silent ;;
-    help|"") cmd_help ;;
-    *) echo "Unknown command: $1. Run 'bytec help' for usage." ;;
+    help|-h|--help|"") cmd_help ;;
+    *) echo "Unknown command: '$1'. Run 'bytec help' for available commands." ;;
 esac

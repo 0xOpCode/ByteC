@@ -1,0 +1,79 @@
+#!/bin/sh
+# ==============================================================================
+# ByteC: GDB Debugger Wrapper (cdebug)
+# Compiles with -g -O0 and starts GDB with a quick command reference
+# ==============================================================================
+
+show_help() {
+    echo "ByteC GDB Debugger (cdebug)"
+    echo "Usage:"
+    echo "  cdebug <file.c|file.cpp>             Compile with debug symbols and start GDB"
+    echo "  cdebug -h | --help                   Show this help guide"
+    exit 0
+}
+
+if [ -z "$1" ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+    show_help
+fi
+
+SRC="$1"
+if [ ! -f "$SRC" ]; then
+    echo "Error: Source file '$SRC' not found." >&2
+    exit 1
+fi
+
+if ! command -v gdb >/dev/null 2>&1; then
+    echo "Error: 'gdb' is not installed." >&2
+    if [ -n "$PREFIX" ] && [ -d "$PREFIX" ] && echo "$PREFIX" | grep -q "com.termux"; then
+        echo "Install it in Termux via: pkg install gdb" >&2
+    else
+        echo "Install it via: sudo apt install gdb" >&2
+    fi
+    exit 1
+fi
+
+TMP_DIR="${TMPDIR:-/tmp}"
+[ ! -d "$TMP_DIR" ] && mkdir -p "$TMP_DIR" 2>/dev/null
+BIN="$TMP_DIR/debug_$$"
+
+cleanup() {
+    rm -f "$BIN"
+}
+trap cleanup EXIT INT TERM
+
+echo "Compiling '$SRC' with debug symbols (-g -O0)..."
+
+case "$SRC" in
+    *.cpp|*.cc|*.cxx)
+        clang++ -g -O0 -Wall -std=c++20 "$SRC" -o "$BIN"
+        ;;
+    *.c)
+        clang -g -O0 -Wall "$SRC" -o "$BIN" -lm
+        ;;
+    *)
+        echo "Error: Unsupported file extension." >&2
+        exit 1
+        ;;
+esac
+
+if [ $? -ne 0 ]; then
+    echo "Compilation failed. Resolve errors above before debugging." >&2
+    exit 1
+fi
+
+echo "----------------------------------------------"
+echo "GDB Command Reference:"
+echo "  b main       -> Set breakpoint at main()"
+echo "  b <line>     -> Set breakpoint at line (e.g. b 15)"
+echo "  r            -> Run program"
+echo "  n            -> Step to next line"
+echo "  s            -> Step into function"
+echo "  p <variable> -> Print variable value (e.g. p total)"
+echo "  c            -> Continue execution"
+echo "  bt           -> Backtrace stack on crash"
+echo "  q            -> Quit debugger"
+echo "----------------------------------------------"
+echo "Starting GDB session on '$SRC'..."
+echo ""
+
+gdb -q "$BIN"

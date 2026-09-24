@@ -1,0 +1,81 @@
+#!/bin/sh
+# ==============================================================================
+# ByteC: C and C++ Code Formatter (cformat)
+# Formats code using clang-format with Allman or Google style
+# ==============================================================================
+
+show_help() {
+    echo "ByteC Code Formatter (cformat)"
+    echo "Usage:"
+    echo "  cformat <file.c|file.cpp>            Format file in place"
+    echo "  cformat *.c                          Format multiple files"
+    echo "  cformat --all                        Format all C and C++ files in current folder"
+    echo "  cformat -s [allman|google|llvm] file Format with specific style"
+    echo "  cformat -h | --help                  Show this help guide"
+    exit 0
+}
+
+if [ -z "$1" ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+    show_help
+fi
+
+# Check for clang-format
+if ! command -v clang-format >/dev/null 2>&1; then
+    echo "Error: 'clang-format' is not installed." >&2
+    if [ -n "$PREFIX" ] && [ -d "$PREFIX" ] && echo "$PREFIX" | grep -q "com.termux"; then
+        echo "Install it in Termux via: pkg install clang-tools" >&2
+    else
+        echo "Install it via: sudo apt install clang-format" >&2
+    fi
+    exit 1
+fi
+
+STYLE="allman"
+FILES=""
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -s|--style)
+            shift
+            STYLE="$1"
+            ;;
+        --all)
+            FILES="$(ls *.c *.cpp *.h 2>/dev/null)"
+            ;;
+        *)
+            FILES="$FILES $1"
+            ;;
+    esac
+    shift
+done
+
+if [ -z "$FILES" ]; then
+    echo "Error: No files specified for formatting." >&2
+    exit 1
+fi
+
+case "$STYLE" in
+    allman)
+        STYLE_ARG='{BasedOnStyle: LLVM, BreakBeforeBraces: Allman, IndentWidth: 4}'
+        ;;
+    google)
+        STYLE_ARG='Google'
+        ;;
+    llvm)
+        STYLE_ARG='LLVM'
+        ;;
+    *)
+        STYLE_ARG='{BasedOnStyle: LLVM, BreakBeforeBraces: Allman, IndentWidth: 4}'
+        ;;
+esac
+
+for f in $FILES; do
+    if [ -f "$f" ]; then
+        clang-format -i --style="$STYLE_ARG" "$f"
+        echo "Formatted '$f' ($STYLE style)"
+    else
+        echo "Skipping '$f' (file not found)"
+    fi
+done
+
+echo "Formatting complete."

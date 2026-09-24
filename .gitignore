@@ -6,3 +6,9 @@
 *.swo
 *~
 .DS_Store
+app
+a.out
+*.tar.gz
+CMakeCache.txt
+CMakeFiles/
+compile_commands.json

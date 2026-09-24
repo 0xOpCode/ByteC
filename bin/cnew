@@ -1,22 +1,87 @@
 #!/bin/sh
 # ==============================================================================
-# 🚀 ByteC — Quick C/C++ Boilerplate Generator
-# Usage: cnew <filename>[.c|.cpp]
+# ByteC: C and C++ Boilerplate and Template Generator
+# Usage: cnew [filename.[c|cpp]] [-t template]
 # ==============================================================================
 
-if [ -z "$1" ]; then
-    echo "Usage: cnew <filename.c | filename.cpp>"
-    exit 1
+BYTEC_HOME="${BYTEC_HOME:-$HOME/.bytec}"
+TEMPLATE_DIR="$BYTEC_HOME/config/templates"
+
+show_help() {
+    echo "ByteC Boilerplate Generator (cnew)"
+    echo "Usage:"
+    echo "  cnew <filename.c|filename.cpp>       Create new C/C++ file with starter code"
+    echo "  cnew <filename.c> -t <template>      Create using a DSA or lab template"
+    echo "  cnew -l | --list                     List available templates"
+    echo "  cnew -h | --help                     Show this help guide"
+    echo ""
+    echo "Available Templates:"
+    echo "  hello, linkedlist, stack, queue, binarytree, sort, matrix, fileio, pointers, strings"
+    exit 0
+}
+
+list_templates() {
+    echo "Available ByteC Lab and DSA Templates:"
+    echo "----------------------------------------------"
+    echo "  hello       - Hello World with argument parsing"
+    echo "  linkedlist  - Singly linked list (insert, delete, display)"
+    echo "  stack       - Array-based stack (push, pop, peek)"
+    echo "  queue       - Circular queue operations"
+    echo "  binarytree  - Binary search tree (traversals, search)"
+    echo "  sort        - Bubble, Selection, and Insertion sorts"
+    echo "  matrix      - 2D matrix addition and multiplication"
+    echo "  fileio      - File read and write operations"
+    echo "  pointers    - Dynamic memory and pointer swap"
+    echo "  strings     - Custom string manipulation functions"
+    echo "----------------------------------------------"
+    echo "Usage: cnew mylab.c -t stack"
+    exit 0
+}
+
+TEMPLATE=""
+FILE=""
+
+# Parse arguments
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -h|--help)
+            show_help
+            ;;
+        -l|--list|--templates)
+            list_templates
+            ;;
+        -t|--template)
+            shift
+            TEMPLATE="$1"
+            ;;
+        *)
+            if [ -z "$FILE" ]; then
+                FILE="$1"
+            fi
+            ;;
+    esac
+    shift
+done
+
+# If no filename provided, enter interactive mode
+if [ -z "$FILE" ]; then
+    printf "Enter file name (e.g. lab1.c): "
+    read -r FILE
+    if [ -z "$FILE" ]; then
+        echo "Error: Filename cannot be empty."
+        exit 1
+    fi
 fi
 
-FILE="$1"
+# Ensure appropriate extension
 case "$FILE" in
-    *.c|*.cpp) ;;
+    *.c|*.cpp|*.cc|*.cxx) ;;
     *) FILE="${FILE}.c" ;;
 esac
 
+# If file already exists, open directly
 if [ -f "$FILE" ]; then
-    echo "⚠️ File '$FILE' already exists! Opening in editor..."
+    echo "File '$FILE' exists. Opening in editor..."
     command -v nvim >/dev/null 2>&1 && exec nvim "$FILE" || exec nano "$FILE"
 fi
 
@@ -24,10 +89,31 @@ DIRNAME=$(dirname "$FILE")
 [ "$DIRNAME" != "." ] && mkdir -p "$DIRNAME"
 
 DATE=$(date "+%Y-%m-%d")
+BASENAME=$(basename "$FILE")
 
+# Check if a template was requested
+if [ -n "$TEMPLATE" ]; then
+    SRC_TEMPLATE="$TEMPLATE_DIR/${TEMPLATE}.c"
+    if [ -f "$SRC_TEMPLATE" ]; then
+        cp "$SRC_TEMPLATE" "$FILE"
+        echo "Generated '$FILE' from '${TEMPLATE}' template."
+        command -v nvim >/dev/null 2>&1 && exec nvim "$FILE" || exec nano "$FILE"
+    else
+        echo "Template '$TEMPLATE' not found. Creating standard file."
+        echo "Run 'cnew --list' to see available templates."
+    fi
+fi
+
+# Standard boilerplate generation
 case "$FILE" in
-    *.cpp)
-cat << 'EOF' > "$FILE"
+    *.cpp|*.cc|*.cxx)
+cat << EOF > "$FILE"
+/**
+ * File: $BASENAME
+ * Created: $DATE
+ * Environment: ByteC
+ */
+
 #include <iostream>
 #include <vector>
 #include <string>
@@ -36,24 +122,30 @@ using namespace std;
 
 int main()
 {
-    cout << "Hello from ByteC!" << endl;
+    cout << "Hello from ByteC C++" << endl;
     return 0;
 }
 EOF
     ;;
     *.c)
-cat << 'EOF' > "$FILE"
+cat << EOF > "$FILE"
+/**
+ * File: $BASENAME
+ * Created: $DATE
+ * Environment: ByteC
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 
 int main()
 {
-    printf("Hello from ByteC!\n");
+    printf("Hello from ByteC\n");
     return 0;
 }
 EOF
     ;;
 esac
 
-echo "✅ Created '$FILE' with clean boilerplate."
+echo "Created '$FILE'."
 command -v nvim >/dev/null 2>&1 && exec nvim "$FILE" || exec nano "$FILE"

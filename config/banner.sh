@@ -1,6 +1,6 @@
 #!/bin/sh
 # ==============================================================================
-# 🛡️ ByteC — Startup ASCII Splash Banner
+# ByteC: Startup Terminal Banner
 # ==============================================================================
 
 CYAN='\033[0;36m'
@@ -17,6 +17,6 @@ cat << 'EOF'
  |____/ \__, |\__\___|\____|
         |___/               
 EOF
-echo "${GREEN} ⚡ Pocket C/C++ Development Environment (Android & Termux)${NC}"
-echo "${GRAY} • cnew <file.c>  • crun <file.c>  • bytec update  • bytec help${NC}"
+echo "${GREEN} ByteC: C and C++ Environment for Android Termux${NC}"
+echo "${GRAY} cnew <file.c>  crun <file.c>  bytec doctor  bytec help${NC}"
 echo ""

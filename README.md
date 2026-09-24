@@ -1,126 +1,214 @@
-# ⚡ ByteC — 1-Click Pocket C/C++ IDE for Android & Termux
+# ByteC: 1-Click C and C++ Setup for Android Termux
 
 [![GitHub License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Android%20%7C%20Termux%20%7C%20Linux-green.svg)]()
-[![Stack](https://img.shields.io/badge/stack-Clang%20%7C%20Neovim%20%7C%20CMake-orange.svg)]()
+[![Stack](https://img.shields.io/badge/stack-Clang%20%7C%20Neovim%20%7C%20GDB%20%7C%20CMake-orange.svg)]()
+[![Documentation](https://img.shields.io/badge/docs-GitHub%20Pages-blue.svg)](https://0xopcode.github.io/ByteC/)
+[![Version](https://img.shields.io/badge/version-1.1.0-brightgreen.svg)](VERSION)
 
-> **Turn your Android phone into a high-performance C & C++ development powerhouse in 1 click — no heavy proot distro needed (~100MB vs 3GB).**
+ByteC sets up a native C and C++ environment in Termux with one command. It installs compilers, an Allman-configured Neovim editor, debugging tools, and lab templates in 120MB of storage. It runs without proot containers.
+
+Read the full guide: [0xopcode.github.io/ByteC](https://0xopcode.github.io/ByteC/)
 
 ---
 
-## 🚀 1-Click Installation
+## Installation
 
-Open **Termux** and paste this single command:
+Open Termux on your phone and run:
 
 ```bash
 curl -sL https://raw.githubusercontent.com/0xOpCode/ByteC/main/install.sh | bash
 ```
 
-After installation completes, restart Termux or run:
+When installation finishes, reload your shell configuration:
+
 ```bash
 source ~/.bashrc
 ```
 
----
-
-## 🌟 Why ByteC? (Built for College Students & Developers)
-
-| Problem in College / Termux | How ByteC Solves It |
-| :--- | :--- |
-| **No Phone Storage for proot** (Ubuntu/Debian needs 2-4GB) | **100% Native Termux** (~120MB total footprint). |
-| **No GCC in Termux** (`gcc: command not found` error) | **Smart `gcc` & `g++` wrappers** forwarding seamlessly to `clang`. |
-| **Typing `{ } ( ) ; "` on mobile keyboard is painful** | **Custom Termux Touch Row** with all C programming symbols. |
-| **Code lost when clearing Termux data / uninstalling** | Auto-symlinks `~/c_projects` ➔ Phone Internal Storage (`/sdcard/C_Projects`). |
-| **Manual re-installs when new features arrive** | **`bytec update`** pulls latest features in 1 second. |
-| **Clunky terminal editors** | Bundled with **0xOpCode Neovim C IDE** (VS Code shortcuts, Allman style, OLED black). |
+> **Note for new Termux users:** Do not install Termux from Google Play Store. The Play Store build is obsolete and fails to update packages. Install Termux from [F-Droid](https://f-droid.org/packages/com.termux/) or GitHub Releases.
 
 ---
 
-## 🛠️ CLI Tools & Helpers
+## Comparison
 
-### 1. `cnew <file.c>` — Instant Boilerplate
-Create a clean, ready-to-run C or C++ file with standard library headers and `main()` function:
+| Problem | Standard Termux | ByteC |
+| :--- | :--- | :--- |
+| Storage footprint | 3GB to 5GB (Ubuntu proot) | 120MB (Native Termux packages) |
+| Missing GCC | `gcc: command not found` error | Wrappers forward `gcc` and `g++` to Clang |
+| Mobile punctuation | Hidden behind keyboard sub-panels | 2-row toolbar with `{ } ( ) ; "` and arrows |
+| App uninstalls | Erases code in Termux home | Links `~/c_projects` to `/sdcard/C_Projects` |
+| University assignments | Write boilerplate from scratch | 10 built-in DSA and lab templates |
+
+---
+
+## Command Reference
+
+### `cnew` - Create Files and Templates
+
+Create a starter C or C++ file:
+
 ```bash
 cnew lab1.c
 cnew test.cpp
 ```
 
-### 2. `crun <file.c>` — 1-Step Compile & Run
-Compiles with `clang`, runs the binary, measures execution time in milliseconds, and prints exit status:
+Run `cnew` without arguments to open an interactive prompt.
+
+Create a file from a built-in lab template:
+
 ```bash
-crun lab1.c
-crun lab1.c "arg1" "arg2"
+cnew lab2.c -t linkedlist    # Singly linked list operations
+cnew lab3.c -t stack         # Array-based stack
+cnew lab4.c -t queue         # Circular queue
+cnew lab5.c -t binarytree    # Binary search tree
+cnew lab6.c -t sort          # Bubble, Selection, and Insertion sorts
+cnew lab7.c -t matrix        # 2D matrix addition and multiplication
+cnew lab8.c -t fileio        # File read and write operations
+cnew lab9.c -t pointers      # Dynamic memory and pointer swap
+cnew lab10.c -t strings      # Custom string algorithms
+cnew -l                      # List all templates
 ```
 
-### 3. `gcc` & `g++` — Seamless Lab Commands
-Run your college lab manual commands without errors:
+### `crun` - Compile and Run in One Step
+
+Compile with Clang, run the binary, and print execution time:
+
+```bash
+crun lab1.c
+crun lab1.c -i input.txt     # Read stdin from file
+crun lab1.c -g               # Compile with debug symbols (-g -O0)
+crun main.c utils.c          # Compile multiple source files
+crun lab1.c arg1 arg2        # Pass command line arguments
+```
+
+If compilation fails, `crun` flags common student errors like missing semicolons, undeclared variables, and missing headers.
+
+### `cbuild` - Multi-File Project Compiler
+
+Compile every `.c` or `.cpp` file in the current folder into `./app`:
+
+```bash
+cbuild
+cbuild main.c engine.c -o myprogram
+cbuild clean                 # Remove *.o, *.out, and binary artifacts
+```
+
+### `cformat` - Code Formatter
+
+Format source code in place using Allman or Google indentation:
+
+```bash
+cformat lab1.c               # Allman style
+cformat --all                # Format all source files in directory
+cformat -s google lab1.c     # Google style
+```
+
+### `cdebug` - Guided GDB Debugger
+
+Compile with debug symbols and start GDB with a reference card:
+
+```bash
+cdebug lab1.c
+```
+
+### `ctest` - Automated Test Runner
+
+Test program output against test cases:
+
+```bash
+ctest lab1.c input.txt expected.txt
+ctest lab1.c testcase.txt    # Single file with --- INPUT --- and --- EXPECTED --- blocks
+```
+
+### `gcc` and `g++` - Compiler Wrappers
+
+Run compiler commands from university lab sheets directly:
+
 ```bash
 gcc lab1.c -o lab1
 ./lab1
 ```
 
-### 4. `bytec update` — 1-Word Auto Updater
-Pulls latest Neovim settings and ByteC tools directly from GitHub:
-```bash
-bytec update
-```
+---
 
-### 5. `bytec status` — Environment Inspector
-Shows installed compiler versions, Neovim commit, and storage link status.
+## ByteC Manager (`bytec`)
+
+| Command | Action |
+| :--- | :--- |
+| `bytec doctor` | Check installed compilers, storage links, git, and disk space |
+| `bytec tutorial` | Run interactive 60-second walkthrough |
+| `bytec cheatsheet <topic>` | View offline guides for `printf`, `pointers`, `strings`, `loops`, `dsa`, `keys` |
+| `bytec share <file.c>` | Upload file to paste service and copy link to clipboard |
+| `bytec backup` | Save archive of `~/c_projects` to `/sdcard/Download/` |
+| `bytec restore <archive>` | Restore workspace from backup archive |
+| `bytec stats` | Display file counts, line counts, and workspace size |
+| `bytec update` | Pull latest ByteC tools and Neovim configuration |
+| `bytec status` | Show installed tool versions and commit hashes |
+| `bytec version` | Display current release version |
+| `bytec uninstall` | Remove ByteC while preserving `~/c_projects` |
 
 ---
 
-## ⌨️ Neovim IDE Keybindings Cheatsheet
+## Neovim Shortcuts
 
-When editing in Neovim (`nvim file.c`):
+ByteC includes a customized Neovim setup. Keybindings:
 
 | Shortcut | Action |
 | :--- | :--- |
-| **`<Space> + r`** | **Save, Auto-Format (Allman), Compile & Run in Full Screen** |
-| **`Ctrl + s`** | Save & Format current file |
-| **`Ctrl + z`** | Undo |
-| **`Ctrl + y`** | Redo |
-| **`Ctrl + Enter`** | Insert new line below |
-| **`Ctrl + Shift + Enter`** | Insert new line above |
-| **`Ctrl + d`** | Select word under cursor |
-| **`Select text + (`** | Auto-wrap selected text in `(...)` (also works with `[`, `{`, `"`, `'`) |
-| **`Ctrl + ~` / `Ctrl + j`** | Toggle / Hide / Unhide Floating Terminal |
-| **`<Space> + e`** | Toggle File Explorer Tree |
-| **`<Space> + ff`** | Fuzzy Search Files |
+| `<Space> + r` | Save, format in Allman style, compile, and run |
+| `Ctrl + s` | Save and format file |
+| `Ctrl + z` | Undo |
+| `Ctrl + y` | Redo |
+| `Ctrl + Enter` | Insert newline below |
+| `Ctrl + d` | Select word under cursor |
+| `Ctrl + ~` or `Ctrl + j` | Toggle floating terminal |
+| `<Space> + e` | Toggle file tree |
+| `<Space> + ff` | Search files |
 
 ---
 
-## 📱 Termux Touch Extra Keys Bar
+## Touch Toolbar
 
-Custom row configured above your phone keyboard:
+ByteC puts two rows of keys above your mobile keyboard:
+
 ```
-[ ESC | TAB | CTRL | ALT | { | } | ( | ) | " | ; | / | - ]
+Row 1: [ ESC   | TAB  | CTRL | ALT | { | } | ( | ) ]
+Row 2: [ LEFT  | DOWN | UP   | RIGHT | " | ; | / | - ]
 ```
+
+Use arrow keys to navigate code without screen tapping. Enter C punctuation without opening keyboard symbol pages.
 
 ---
 
-## 📂 Project Structure
+## Directory Structure
 
 ```
 ~/.bytec/
 ├── bin/
-│   ├── gcc                 # Smart GCC wrapper
-│   ├── g++                 # Smart G++ wrapper
-│   ├── cnew                # Boilerplate generator
-│   ├── crun                # Compile & Run tool
-│   └── bytec               # Master updater & CLI
+│   ├── gcc                 # GCC wrapper (forwards to clang)
+│   ├── g++                 # G++ wrapper (forwards to clang++)
+│   ├── cnew                # File and template generator
+│   ├── crun                # Compile and run runner
+│   ├── cbuild              # Multi-file compiler
+│   ├── cformat             # Code formatter
+│   ├── cdebug              # GDB wrapper
+│   ├── ctest               # Test runner
+│   └── bytec               # Manager CLI
 ├── config/
-│   ├── termux.properties   # Touch keys row
-│   ├── colors.properties   # OLED Pure Black theme
-│   └── banner.sh           # Minimal startup banner
+│   ├── templates/          # 10 university lab templates
+│   ├── termux.properties   # 2-row touch toolbar configuration
+│   ├── colors.properties   # Pure black OLED theme
+│   └── banner.sh           # Terminal startup banner
 ├── shell/
-│   ├── aliases.sh          # Quick shortcuts & auto-update daemon
-│   └── prompt.sh           # Fast git-aware shell prompt
-└── install.sh              # 1-Click installer
+│   ├── aliases.sh          # Shell aliases
+│   └── prompt.sh           # Minimal git prompt
+├── VERSION                 # Version number
+└── install.sh              # Installation script
 ```
 
 ---
 
-## 🛡️ License
+## License
 
-MIT License © 2026 [0xOpCode](https://github.com/0xOpCode)
+MIT License. Copyright (c) 2026 Akashdeep (0xOpCode).

@@ -1,73 +1,166 @@
 #!/bin/sh
 # ==============================================================================
-# ⚡ ByteC — Fast Compile & Run Helper
-# Usage: crun <filename.c | filename.cpp> [args...]
+# ByteC: Compile and Run Runner
+# Usage: crun <file.c|file.cpp> [-i input.txt] [-g] [args...]
 # ==============================================================================
 
-if [ -z "$1" ]; then
-    echo "Usage: crun <filename.c | filename.cpp> [program_args...]"
+show_help() {
+    echo "ByteC Compile and Run (crun)"
+    echo "Usage:"
+    echo "  crun <file.c|file.cpp>               Compile and run in one step"
+    echo "  crun <file.c> -i <input.txt>         Read standard input from file"
+    echo "  crun <file.c> -g                     Compile with debug symbols (-g -O0)"
+    echo "  crun <file1.c> <file2.c>             Compile multiple source files"
+    echo "  crun <file.c> [args...]              Pass arguments to program"
+    echo "  crun -h | --help                     Show this help guide"
+    exit 0
+}
+
+if [ -z "$1" ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+    show_help
+fi
+
+# Portable timestamp function in milliseconds
+get_time_ms() {
+    ts=$(date +%s%3N 2>/dev/null)
+    case "$ts" in
+        *[!0-9]*|"")
+            echo "$(($(date +%s) * 1000))"
+            ;;
+        *)
+            echo "$ts"
+            ;;
+    esac
+}
+
+SOURCES=""
+INPUT_FILE=""
+DEBUG_MODE=0
+PROG_ARGS=""
+IS_CPP=0
+PRIMARY_NAME=""
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -i|--input)
+            shift
+            INPUT_FILE="$1"
+            ;;
+        -g|--debug)
+            DEBUG_MODE=1
+            ;;
+        *.c|*.cpp|*.cc|*.cxx)
+            if [ ! -f "$1" ]; then
+                echo "Error: Source file '$1' not found." >&2
+                exit 1
+            fi
+            SOURCES="$SOURCES $1"
+            if [ -z "$PRIMARY_NAME" ]; then
+                PRIMARY_NAME="$(basename "$1")"
+            fi
+            case "$1" in
+                *.cpp|*.cc|*.cxx) IS_CPP=1 ;;
+            esac
+            ;;
+        *)
+            PROG_ARGS="$PROG_ARGS \"$1\""
+            ;;
+    esac
+    shift
+done
+
+if [ -z "$SOURCES" ]; then
+    echo "Error: No source files specified." >&2
+    echo "Usage: crun main.c [options]" >&2
     exit 1
 fi
 
-SRC="$1"
-shift
-
-if [ ! -f "$SRC" ]; then
-    echo "❌ Error: Source file '$SRC' not found." >&2
-    exit 1
-fi
-
-DIR=$(dirname "$SRC")
-BASE=$(basename "$SRC")
-NAME="${BASE%.*}"
-EXT="${BASE##*.}"
-BIN="/tmp/${NAME}_$$.out"
+TMP_DIR="${TMPDIR:-/tmp}"
+[ ! -d "$TMP_DIR" ] && mkdir -p "$TMP_DIR" 2>/dev/null
+BASE_STEM="${PRIMARY_NAME%.*}"
+BIN="$TMP_DIR/${BASE_STEM}_$$"
 
 cleanup() {
-    rm -f "$BIN"
+    rm -f "$BIN" "${BIN}.err"
 }
 trap cleanup EXIT INT TERM
 
-echo "🔨 Compiling $SRC..."
-START_COMPILE=$(date +%s%3N 2>/dev/null || date +%s)
+echo "Compiling$SOURCES..."
+START_COMPILE=$(get_time_ms)
 
-case "$EXT" in
-    c)
-        clang -Wall -Wextra -O2 "$SRC" -o "$BIN" -lm
-        ;;
-    cpp|cc|cxx)
-        clang++ -Wall -Wextra -O2 -std=c++20 "$SRC" -o "$BIN"
-        ;;
-    *)
-        echo "❌ Unsupported file extension: .$EXT (Use .c or .cpp)" >&2
-        exit 1
-        ;;
-esac
+# Set compiler optimization & flags
+if [ $DEBUG_MODE -eq 1 ]; then
+    FLAGS="-g -O0 -Wall -Wextra"
+else
+    FLAGS="-O2 -Wall -Wextra"
+fi
 
+if [ $IS_CPP -eq 1 ]; then
+    COMPILER="clang++"
+    FLAGS="$FLAGS -std=c++20"
+else
+    COMPILER="clang"
+    FLAGS="$FLAGS -lm"
+fi
+
+# Compile capturing errors
+$COMPILER $FLAGS $SOURCES -o "$BIN" 2> "${BIN}.err"
 STATUS=$?
+
 if [ $STATUS -ne 0 ]; then
-    echo "❌ Compilation failed (exit code $STATUS)" >&2
+    cat "${BIN}.err" >&2
+    echo ""
+    echo "Compilation failed (exit code $STATUS)" >&2
+    
+    # Common error explanations
+    if grep -q "expected ';'" "${BIN}.err"; then
+        echo "Tip: Check for a missing semicolon (;) before or on this line." >&2
+    fi
+    if grep -q "use of undeclared identifier" "${BIN}.err"; then
+        echo "Tip: Declare the variable before using it, or include its header." >&2
+    fi
+    if grep -q "conflicting types for" "${BIN}.err"; then
+        echo "Tip: Function signature does not match its earlier prototype." >&2
+    fi
+    if grep -q "implicit declaration of function" "${BIN}.err"; then
+        echo "Tip: Include the standard header for this function (such as <stdio.h> or <math.h>)." >&2
+    fi
     exit $STATUS
 fi
 
-END_COMPILE=$(date +%s%3N 2>/dev/null || date +%s)
+END_COMPILE=$(get_time_ms)
 COMPILE_TIME=$((END_COMPILE - START_COMPILE))
+if [ $COMPILE_TIME -lt 0 ]; then COMPILE_TIME=0; fi
 
-echo "✅ Compilation successful (${COMPILE_TIME}ms)"
-echo "──────────────────────────────────────────────"
-echo "🚀 Running $NAME..."
+echo "Compiled in ${COMPILE_TIME}ms"
+echo "----------------------------------------------"
+echo "Running $PRIMARY_NAME..."
 
-START_EXEC=$(date +%s%3N 2>/dev/null || date +%s)
-"$BIN" "$@"
+START_EXEC=$(get_time_ms)
+
+if [ -n "$INPUT_FILE" ]; then
+    if [ ! -f "$INPUT_FILE" ]; then
+        echo "Warning: Input file '$INPUT_FILE' not found. Using standard input." >&2
+        eval "\"$BIN\" $PROG_ARGS"
+    else
+        echo "Input source: $INPUT_FILE"
+        eval "\"$BIN\" $PROG_ARGS < \"$INPUT_FILE\""
+    fi
+else
+    eval "\"$BIN\" $PROG_ARGS"
+fi
+
 EXEC_STATUS=$?
-END_EXEC=$(date +%s%3N 2>/dev/null || date +%s)
+END_EXEC=$(get_time_ms)
 EXEC_TIME=$((END_EXEC - START_EXEC))
+if [ $EXEC_TIME -lt 0 ]; then EXEC_TIME=0; fi
 
 echo ""
-echo "──────────────────────────────────────────────"
+echo "----------------------------------------------"
 if [ $EXEC_STATUS -eq 0 ]; then
-    echo "✨ Finished successfully (Exit: 0 | Execution Time: ${EXEC_TIME}ms)"
+    echo "Exit: 0 | Execution Time: ${EXEC_TIME}ms"
 else
-    echo "⚠️ Process finished with error (Exit: $EXEC_STATUS | Time: ${EXEC_TIME}ms)"
+    echo "Exit: $EXEC_STATUS | Execution Time: ${EXEC_TIME}ms"
 fi
+
 exit $EXEC_STATUS

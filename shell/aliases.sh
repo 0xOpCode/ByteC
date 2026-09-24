@@ -1,16 +1,23 @@
 #!/bin/sh
 # ==============================================================================
-# ⚡ ByteC — Productivity Aliases & Auto-Update Daemon Hook
+# ByteC: Productivity Aliases and Update Hook
 # ==============================================================================
 
-# Quick C Shortcuts
+# Fast C Workflow Shortcuts
 alias c='cnew'
 alias cr='crun'
+alias cb='cbuild'
+alias cf='cformat'
+alias cdbg='cdebug'
+alias ct='ctest'
 alias nv='nvim'
 alias cls='clear'
 alias proj='cd ~/c_projects'
+alias doc='bytec doctor'
+alias sheet='bytec cheatsheet'
+alias tpl='bytec template'
 
-# Modern ls shortcuts if available
+# Modern directory listing
 alias ll='ls -la'
 alias la='ls -A'
 

@@ -1,7 +1,7 @@
 #!/bin/sh
 # ==============================================================================
-# 🛡️ ByteC — 1-Click C/C++ Development Environment Installer
-# Supports: Android Termux (Native) & Linux
+# ByteC: 1-Click C and C++ Development Environment Installer
+# Supports: Android Termux (Native) and Linux
 # ==============================================================================
 
 set -e
@@ -22,7 +22,7 @@ cat << 'EOF'
  |____/ \__, |\__\___|\____|
         |___/               
 EOF
-echo "${GREEN}⚡ Starting ByteC 1-Click Installation...${NC}"
+echo "${GREEN}Starting ByteC installation...${NC}"
 echo ""
 
 # 1. Environment Detection
@@ -41,42 +41,49 @@ fi
 # 2. Package Installation
 echo "${YELLOW}📦 [1/6] Installing C/C++ Toolchain & Dependencies...${NC}"
 if [ $IS_TERMUX -eq 1 ]; then
-    pkg update -y
-    pkg install -y clang make cmake gdb git curl neovim bash-completion
+    pkg update -y || true
+    pkg install -y clang make cmake gdb git curl neovim bash-completion clang-tools tar || true
 else
     if command -v apt-get >/dev/null 2>&1; then
-        sudo apt-get update -y || apt-get update -y
-        sudo apt-get install -y clang make cmake gdb git curl neovim || apt-get install -y clang make cmake gdb git curl neovim
+        sudo apt-get update || apt-get update || true
+        sudo apt-get install -y clang clang-format make cmake gdb git curl neovim tar || apt-get install -y clang clang-format make cmake gdb git curl neovim tar || true
     elif command -v pacman >/dev/null 2>&1; then
-        sudo pacman -Sy --noconfirm clang make cmake gdb git curl neovim
+        sudo pacman -Sy --noconfirm clang make cmake gdb git curl neovim tar || pacman -Sy --noconfirm clang make cmake gdb git curl neovim tar || true
     elif command -v dnf >/dev/null 2>&1; then
-        sudo dnf install -y clang make cmake gdb git curl neovim
+        sudo dnf install -y clang clang-tools-extra make cmake gdb git curl neovim tar || dnf install -y clang clang-tools-extra make cmake gdb git curl neovim tar || true
+    else
+        echo "${YELLOW}⚠️ Warning: Unsupported package manager. Please ensure clang, make, and git are installed.${NC}"
     fi
 fi
 
 # 3. Setup ByteC Directory (~/.bytec)
-echo "${YELLOW}⚙️ [2/6] Deploying ByteC CLI Tools...${NC}"
+echo "${YELLOW}⚙️ [2/6] Deploying ByteC CLI Tools & Templates...${NC}"
 BYTEC_HOME="${HOME}/.bytec"
+mkdir -p "$BYTEC_HOME"
 
-# If cloned locally or running from repository folder
 SCRIPT_DIR="$(cd "$(dirname "$0")" 2>/dev/null && pwd)"
 if [ -f "$SCRIPT_DIR/bin/crun" ]; then
-    rm -rf "$BYTEC_HOME"
-    cp -r "$SCRIPT_DIR" "$BYTEC_HOME"
+    # Running from local cloned directory (exclude .git)
+    mkdir -p "$BYTEC_HOME/bin" "$BYTEC_HOME/config" "$BYTEC_HOME/shell"
+    cp -rf "$SCRIPT_DIR/bin/"* "$BYTEC_HOME/bin/"
+    cp -rf "$SCRIPT_DIR/config/"* "$BYTEC_HOME/config/"
+    cp -rf "$SCRIPT_DIR/shell/"* "$BYTEC_HOME/shell/"
+    [ -f "$SCRIPT_DIR/VERSION" ] && cp -f "$SCRIPT_DIR/VERSION" "$BYTEC_HOME/"
+    [ -f "$SCRIPT_DIR/README.md" ] && cp -f "$SCRIPT_DIR/README.md" "$BYTEC_HOME/"
 else
     # Running via curl | bash
     if [ -d "$BYTEC_HOME/.git" ]; then
-        git -C "$BYTEC_HOME" pull --ff-only
+        git -C "$BYTEC_HOME" pull --ff-only || true
     else
         rm -rf "$BYTEC_HOME"
         git clone https://github.com/0xOpCode/ByteC.git "$BYTEC_HOME"
     fi
 fi
 
-chmod +x "$BYTEC_HOME"/bin/* "$BYTEC_HOME"/config/*.sh "$BYTEC_HOME"/shell/*.sh
+chmod +x "$BYTEC_HOME"/bin/* "$BYTEC_HOME"/config/*.sh "$BYTEC_HOME"/shell/*.sh 2>/dev/null || true
 
 # Symlink CLI commands to BIN_DIR
-for cmd in gcc g++ cnew crun bytec; do
+for cmd in gcc g++ cnew crun cbuild cformat cdebug ctest bytec; do
     if [ -w "$BIN_DIR" ]; then
         ln -sf "$BYTEC_HOME/bin/$cmd" "$BIN_DIR/$cmd"
     else
@@ -87,14 +94,12 @@ done
 
 # 4. Configure Termux Touch UI & Hide MOTD
 echo "${YELLOW}📱 [3/6] Configuring Termux Touch Keys & OLED Palette...${NC}"
-# Silence default Termux welcome message
 touch "${HOME}/.hushlogin"
 
 if [ $IS_TERMUX -eq 1 ]; then
     mkdir -p "${HOME}/.termux"
     cp -f "$BYTEC_HOME/config/termux.properties" "${HOME}/.termux/termux.properties"
     cp -f "$BYTEC_HOME/config/colors.properties" "${HOME}/.termux/colors.properties"
-    # Apply settings immediately
     command -v termux-reload-settings >/dev/null 2>&1 && termux-reload-settings || true
 fi
 
@@ -112,22 +117,26 @@ else
         mv "$NVIM_DIR" "$BACKUP_NVIM"
     fi
     mkdir -p "${HOME}/.config"
-    git clone https://github.com/0xOpCode/nvim.git "$NVIM_DIR"
+    git clone https://github.com/0xOpCode/nvim.git "$NVIM_DIR" 2>/dev/null || true
 fi
 
-# Pre-fetch & sync lazy plugins in headless mode
-echo "  • Pre-caching Neovim plugins in background..."
-nvim --headless "+Lazy! sync" +qa >/dev/null 2>&1 || true
+if command -v nvim >/dev/null 2>&1; then
+    echo "  • Syncing Neovim plugins in background..."
+    nvim --headless "+Lazy! sync" +qa >/dev/null 2>&1 || true
+fi
 
 # 6. Shared Storage Link (Termux Phone Storage)
 echo "${YELLOW}📂 [5/6] Setting Up C Projects Workspace...${NC}"
 if [ $IS_TERMUX -eq 1 ]; then
-    # Request Android storage permission
+    echo "  • Requesting phone storage permission (Tap 'Allow' on Android dialog if prompted)..."
     command -v termux-setup-storage >/dev/null 2>&1 && termux-setup-storage || true
     
-    if [ -d "/sdcard" ] && [ -w "/sdcard" ]; then
-        mkdir -p "/sdcard/C_Projects"
-        ln -sfn "/sdcard/C_Projects" "${HOME}/c_projects"
+    # Wait briefly for user permission prompt
+    sleep 1
+    
+    if [ -d "/sdcard" ]; then
+        mkdir -p "/sdcard/C_Projects" 2>/dev/null || true
+        ln -sfn "/sdcard/C_Projects" "${HOME}/c_projects" 2>/dev/null || mkdir -p "${HOME}/c_projects"
         echo "  • Linked ~/c_projects -> /sdcard/C_Projects (Safe from app uninstall)"
     else
         mkdir -p "${HOME}/c_projects"
@@ -138,40 +147,51 @@ fi
 
 # 7. Shell Integration (.bashrc / .zshrc)
 echo "${YELLOW}🐚 [6/6] Integrating Shell Helpers & Prompt...${NC}"
-BASHRC="${HOME}/.bashrc"
-touch "$BASHRC"
 
-# Add PATH if ~/.local/bin was used
-if [ "$BIN_DIR" = "${HOME}/.local/bin" ]; then
-    if ! grep -q 'PATH.*\.local/bin' "$BASHRC"; then
-        echo 'export PATH="${HOME}/.local/bin:$PATH"' >> "$BASHRC"
+setup_rc() {
+    RC_FILE="$1"
+    [ ! -f "$RC_FILE" ] && touch "$RC_FILE"
+
+    if [ "$BIN_DIR" = "${HOME}/.local/bin" ]; then
+        if ! grep -q 'PATH.*\.local/bin' "$RC_FILE"; then
+            echo 'export PATH="${HOME}/.local/bin:$PATH"' >> "$RC_FILE"
+        fi
     fi
-fi
 
-# Remove old ByteC markers if any
-sed -i '/# >>> ByteC Integration >>>/,/# <<< ByteC Integration <<</d' "$BASHRC" 2>/dev/null || true
+    # Remove old ByteC markers
+    sed -i '/# >>> ByteC Integration >>>/,/# <<< ByteC Integration <<</d' "$RC_FILE" 2>/dev/null || true
 
-# Append clean ByteC integration block
-cat << 'EOF' >> "$BASHRC"
+    # Append fresh ByteC block
+    cat << 'EOF' >> "$RC_FILE"
 # >>> ByteC Integration >>>
 [ -f "$HOME/.bytec/config/banner.sh" ] && "$HOME/.bytec/config/banner.sh"
 [ -f "$HOME/.bytec/shell/aliases.sh" ] && . "$HOME/.bytec/shell/aliases.sh"
 [ -f "$HOME/.bytec/shell/prompt.sh" ] && . "$HOME/.bytec/shell/prompt.sh"
 # <<< ByteC Integration <<<
 EOF
+}
 
-# Update .last_check timestamp
-date +%s > "$BYTEC_HOME/.last_check"
+setup_rc "${HOME}/.bashrc"
+[ -f "${HOME}/.zshrc" ] && setup_rc "${HOME}/.zshrc"
+
+date +%s > "$BYTEC_HOME/.last_check" 2>/dev/null || true
 
 echo ""
 echo "${GREEN}================================================================${NC}"
-echo "${GREEN}🎉 ByteC Installation Complete!${NC}"
+echo "${GREEN}ByteC Installation Complete${NC}"
 echo "${GREEN}================================================================${NC}"
 echo ""
-echo "🚀 Quick Start:"
-echo "  1. Restart your Termux or run: ${CYAN}source ~/.bashrc${NC}"
-echo "  2. Create a new C program:     ${CYAN}cnew lab1.c${NC}"
-echo "  3. Compile & run with 1 click: ${CYAN}crun lab1.c${NC} (or inside Neovim press ${CYAN}<Space> + r${NC})"
-echo "  4. Check updates in future:    ${CYAN}bytec update${NC}"
+
+# Run doctor check
+if [ -x "$BYTEC_HOME/bin/bytec" ]; then
+    "$BYTEC_HOME/bin/bytec" doctor
+fi
+
 echo ""
-echo "Happy Coding! 🛡️ Built by 0xOpCode"
+echo "Quick Start:"
+echo "  1. Reload shell:               ${CYAN}source ~/.bashrc${NC}"
+echo "  2. Interactive tutorial:       ${CYAN}bytec tutorial${NC}"
+echo "  3. Create your first program:  ${CYAN}cnew lab1.c${NC}"
+echo "  4. Compile and run:            ${CYAN}crun lab1.c${NC}"
+echo ""
+echo "Maintained by 0xOpCode"

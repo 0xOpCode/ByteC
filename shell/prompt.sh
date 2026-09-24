@@ -1,12 +1,14 @@
 #!/bin/sh
 # ==============================================================================
-# 🚀 ByteC — Fast Minimal Git-Aware Shell Prompt
-# Zero bloat, instant rendering, battery friendly
+# ByteC: Minimal Git-Aware Shell Prompt
 # ==============================================================================
 
-# Parse git branch fast without spawning git status
+# Parse git branch fast with detached HEAD fallback
 parse_git_branch() {
     BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null)
+    if [ -z "$BRANCH" ]; then
+        BRANCH=$(git rev-parse --short HEAD 2>/dev/null)
+    fi
     if [ -n "$BRANCH" ]; then
         echo " ( $BRANCH)"
     fi
@@ -17,10 +19,9 @@ set_bytec_prompt() {
     
     # Colors
     C_CYAN='\[\033[1;36m\]'
+    C_YELLOW='\[\033[1;33m\]'
     C_GREEN='\[\033[1;32m\]'
     C_RED='\[\033[1;31m\]'
-    C_YELLOW='\[\033[1;33m\]'
-    C_GRAY='\[\033[0;90m\]'
     C_RESET='\[\033[0m\]'
 
     # Arrow color based on last command exit status

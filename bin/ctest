@@ -1,0 +1,106 @@
+#!/bin/sh
+# ==============================================================================
+# ByteC: Automated Test Runner for College Labs (ctest)
+# Runs code against test inputs and checks against expected output
+# ==============================================================================
+
+show_help() {
+    echo "ByteC Test Runner (ctest)"
+    echo "Usage:"
+    echo "  ctest <file.c> <input.txt> <expected.txt>   Run test with input and expected output"
+    echo "  ctest <file.c> <testcase.txt>               Run test with combined testcase file"
+    echo "  ctest -h | --help                           Show this help guide"
+    echo ""
+    echo "Combined testcase.txt format:"
+    echo "  --- INPUT ---"
+    echo "  5 10"
+    echo "  --- EXPECTED ---"
+    echo "  15"
+    exit 0
+}
+
+if [ -z "$1" ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+    show_help
+fi
+
+SRC="$1"
+if [ ! -f "$SRC" ]; then
+    echo "Error: Source file '$SRC' not found." >&2
+    exit 1
+fi
+
+TMP_DIR="${TMPDIR:-/tmp}"
+[ ! -d "$TMP_DIR" ] && mkdir -p "$TMP_DIR" 2>/dev/null
+BIN="$TMP_DIR/test_$$"
+ACTUAL_OUT="$TMP_DIR/actual_$$.txt"
+INPUT_TMP="$TMP_DIR/in_$$.txt"
+EXPECTED_TMP="$TMP_DIR/exp_$$.txt"
+
+cleanup() {
+    rm -f "$BIN" "$ACTUAL_OUT" "$INPUT_TMP" "$EXPECTED_TMP"
+}
+trap cleanup EXIT INT TERM
+
+# Handle 2-arg vs 3-arg mode
+if [ $# -eq 2 ]; then
+    TEST_FILE="$2"
+    if [ ! -f "$TEST_FILE" ]; then
+        echo "Error: Testcase file '$TEST_FILE' not found." >&2
+        exit 1
+    fi
+    # Parse combined test file
+    awk '/--- INPUT ---/{flag=1;next}/--- EXPECTED ---/{flag=0}flag' "$TEST_FILE" > "$INPUT_TMP"
+    awk '/--- EXPECTED ---/{flag=1;next}flag' "$TEST_FILE" > "$EXPECTED_TMP"
+elif [ $# -ge 3 ]; then
+    if [ ! -f "$2" ] || [ ! -f "$3" ]; then
+        echo "Error: Input or expected file not found." >&2
+        exit 1
+    fi
+    cp "$2" "$INPUT_TMP"
+    cp "$3" "$EXPECTED_TMP"
+else
+    echo "Error: Missing test arguments." >&2
+    echo "Usage: ctest <file.c> <input.txt> <expected.txt>" >&2
+    exit 1
+fi
+
+echo "Compiling '$SRC'..."
+case "$SRC" in
+    *.cpp|*.cc|*.cxx)
+        clang++ -O2 -Wall -std=c++20 "$SRC" -o "$BIN"
+        ;;
+    *.c)
+        clang -O2 -Wall "$SRC" -o "$BIN" -lm
+        ;;
+esac
+
+if [ $? -ne 0 ]; then
+    echo "Compilation failed." >&2
+    exit 1
+fi
+
+echo "Running test..."
+"$BIN" < "$INPUT_TMP" > "$ACTUAL_OUT"
+
+# Normalize trailing whitespace/newlines for comparison
+diff -u -w -B "$EXPECTED_TMP" "$ACTUAL_OUT" >/dev/null 2>&1
+DIFF_STATUS=$?
+
+echo "----------------------------------------------"
+if [ $DIFF_STATUS -eq 0 ]; then
+    echo "TEST PASSED. Output matches expected output."
+else
+    echo "TEST FAILED."
+    echo ""
+    echo "Expected Output:"
+    cat "$EXPECTED_TMP"
+    echo ""
+    echo "Actual Output:"
+    cat "$ACTUAL_OUT"
+    echo ""
+    echo "Differences (- Expected, + Actual):"
+    diff -u -w -B "$EXPECTED_TMP" "$ACTUAL_OUT" | tail -n +3
+fi
+echo "----------------------------------------------"
+
+exit $DIFF_STATUS
