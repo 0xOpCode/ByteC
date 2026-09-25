@@ -81,7 +81,7 @@ cmd_doctor() {
         echo "clang-format:    Installed"
     else
         echo "clang-format:    Missing (Needed for cformat)"
-        echo "  Fix in Termux: pkg install clang-tools"
+        echo "  Fix in Termux: pkg install clang"
         WARNINGS=$((WARNINGS + 1))
     fi
 

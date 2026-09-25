@@ -6,12 +6,12 @@
 
 set -e
 
-# ANSI Color Codes
-CYAN='\033[1;36m'
-GREEN='\033[1;32m'
-YELLOW='\033[1;33m'
-RED='\033[1;31m'
-NC='\033[0m' # No Color
+# ANSI Color Codes using raw escapes
+CYAN="$(printf '\033[1;36m')"
+GREEN="$(printf '\033[1;32m')"
+YELLOW="$(printf '\033[1;33m')"
+RED="$(printf '\033[1;31m')"
+NC="$(printf '\033[0m')"
 
 echo "${CYAN}"
 cat << 'EOF'
@@ -42,7 +42,15 @@ fi
 echo "${YELLOW}📦 [1/6] Installing C/C++ Toolchain & Dependencies...${NC}"
 if [ $IS_TERMUX -eq 1 ]; then
     pkg update -y || true
-    pkg install -y clang make cmake gdb git curl neovim bash-completion clang-tools tar || true
+    # Note: clang in Termux includes clang-format. Do not include nonexistent clang-tools.
+    pkg install -y git clang make cmake gdb curl neovim bash-completion tar || true
+
+    # Verify essential packages
+    for tool in git clang curl tar; do
+        if ! command -v "$tool" >/dev/null 2>&1; then
+            pkg install -y "$tool" || apt-get install -y "$tool" || true
+        fi
+    done
 else
     if command -v apt-get >/dev/null 2>&1; then
         sudo apt-get update || apt-get update || true
@@ -52,7 +60,7 @@ else
     elif command -v dnf >/dev/null 2>&1; then
         sudo dnf install -y clang clang-tools-extra make cmake gdb git curl neovim tar || dnf install -y clang clang-tools-extra make cmake gdb git curl neovim tar || true
     else
-        echo "${YELLOW}⚠️ Warning: Unsupported package manager. Please ensure clang, make, and git are installed.${NC}"
+        echo "${YELLOW}⚠️ Warning: Unsupported package manager. Ensure clang, make, and git are installed.${NC}"
     fi
 fi
 
@@ -72,11 +80,22 @@ if [ -f "$SCRIPT_DIR/bin/crun" ]; then
     [ -f "$SCRIPT_DIR/README.md" ] && cp -f "$SCRIPT_DIR/README.md" "$BYTEC_HOME/"
 else
     # Running via curl | bash
-    if [ -d "$BYTEC_HOME/.git" ]; then
-        git -C "$BYTEC_HOME" pull --ff-only || true
-    else
+    DEPLOYED=0
+    if command -v git >/dev/null 2>&1; then
+        if [ -d "$BYTEC_HOME/.git" ]; then
+            git -C "$BYTEC_HOME" pull --ff-only 2>/dev/null && DEPLOYED=1 || true
+        else
+            rm -rf "$BYTEC_HOME"
+            git clone https://github.com/0xOpCode/ByteC.git "$BYTEC_HOME" 2>/dev/null && DEPLOYED=1 || true
+        fi
+    fi
+
+    # Fallback to curl archive if git clone failed or git is missing
+    if [ $DEPLOYED -eq 0 ] || [ ! -f "$BYTEC_HOME/bin/crun" ]; then
+        echo "  • Fetching ByteC archive via curl..."
         rm -rf "$BYTEC_HOME"
-        git clone https://github.com/0xOpCode/ByteC.git "$BYTEC_HOME"
+        mkdir -p "$BYTEC_HOME"
+        curl -sL https://github.com/0xOpCode/ByteC/archive/refs/heads/main.tar.gz | tar -xz -C "$BYTEC_HOME" --strip-components=1 || true
     fi
 fi
 
@@ -107,17 +126,27 @@ fi
 echo "${YELLOW}💡 [4/6] Setting Up Neovim C IDE Stack (0xOpCode/nvim)...${NC}"
 NVIM_DIR="${HOME}/.config/nvim"
 
-if [ -d "$NVIM_DIR/.git" ]; then
-    echo "  • Existing 0xOpCode Neovim repo found, pulling latest..."
-    git -C "$NVIM_DIR" pull --ff-only || true
-else
-    if [ -d "$NVIM_DIR" ]; then
-        BACKUP_NVIM="${HOME}/.config/nvim.backup.$(date +%s)"
-        echo "  • Backing up old nvim config to $BACKUP_NVIM..."
-        mv "$NVIM_DIR" "$BACKUP_NVIM"
+NVIM_DEPLOYED=0
+if command -v git >/dev/null 2>&1; then
+    if [ -d "$NVIM_DIR/.git" ]; then
+        echo "  • Existing 0xOpCode Neovim repo found, pulling latest..."
+        git -C "$NVIM_DIR" pull --ff-only 2>/dev/null && NVIM_DEPLOYED=1 || true
+    else
+        if [ -d "$NVIM_DIR" ]; then
+            BACKUP_NVIM="${HOME}/.config/nvim.backup.$(date +%s)"
+            echo "  • Backing up old nvim config to $BACKUP_NVIM..."
+            mv "$NVIM_DIR" "$BACKUP_NVIM"
+        fi
+        mkdir -p "${HOME}/.config"
+        git clone https://github.com/0xOpCode/nvim.git "$NVIM_DIR" 2>/dev/null && NVIM_DEPLOYED=1 || true
     fi
-    mkdir -p "${HOME}/.config"
-    git clone https://github.com/0xOpCode/nvim.git "$NVIM_DIR" 2>/dev/null || true
+fi
+
+# Fallback if git is not available or clone failed
+if [ $NVIM_DEPLOYED -eq 0 ] && [ ! -d "$NVIM_DIR/lua" ]; then
+    echo "  • Fetching Neovim configuration via curl..."
+    mkdir -p "$NVIM_DIR"
+    curl -sL https://github.com/0xOpCode/nvim/archive/refs/heads/main.tar.gz | tar -xz -C "$NVIM_DIR" --strip-components=1 || true
 fi
 
 if command -v nvim >/dev/null 2>&1; then
@@ -131,7 +160,6 @@ if [ $IS_TERMUX -eq 1 ]; then
     echo "  • Requesting phone storage permission (Tap 'Allow' on Android dialog if prompted)..."
     command -v termux-setup-storage >/dev/null 2>&1 && termux-setup-storage || true
     
-    # Wait briefly for user permission prompt
     sleep 1
     
     if [ -d "/sdcard" ]; then

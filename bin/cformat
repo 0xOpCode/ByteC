@@ -23,7 +23,7 @@ fi
 if ! command -v clang-format >/dev/null 2>&1; then
     echo "Error: 'clang-format' is not installed." >&2
     if [ -n "$PREFIX" ] && [ -d "$PREFIX" ] && echo "$PREFIX" | grep -q "com.termux"; then
-        echo "Install it in Termux via: pkg install clang-tools" >&2
+        echo "Install it in Termux via: pkg install clang" >&2
     else
         echo "Install it via: sudo apt install clang-format" >&2
     fi
