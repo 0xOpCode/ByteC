@@ -526,6 +526,34 @@ cmd_check_silent() {
     fi
 }
 
+cmd_git() {
+    if ! command -v git >/dev/null 2>&1; then
+        echo "Git is not installed."
+        return 1
+    fi
+
+    CUR_NAME="$(git config --global user.name 2>/dev/null || true)"
+    CUR_EMAIL="$(git config --global user.email 2>/dev/null || true)"
+
+    echo "Git Identity Configuration:"
+    echo "  Current Name:  ${CUR_NAME:-Not set}"
+    echo "  Current Email: ${CUR_EMAIL:-Not set}"
+    echo ""
+
+    printf "Enter new name (press Enter to keep '%s'): " "$CUR_NAME"
+    read -r NEW_NAME
+    [ -n "$NEW_NAME" ] && git config --global user.name "$NEW_NAME"
+
+    printf "Enter new email (press Enter to keep '%s'): " "$CUR_EMAIL"
+    read -r NEW_EMAIL
+    [ -n "$NEW_EMAIL" ] && git config --global user.email "$NEW_EMAIL"
+
+    echo ""
+    echo "Saved Git Identity:"
+    echo "  Name:  $(git config --global user.name)"
+    echo "  Email: $(git config --global user.email)"
+}
+
 cmd_help() {
     echo "ByteC CLI Commands (v$(get_version))"
     echo ""
@@ -540,6 +568,7 @@ cmd_help() {
     echo ""
     echo "Management:"
     echo "  bytec doctor               Run diagnostic system check"
+    echo "  bytec git                  Configure Git user name and email"
     echo "  bytec template [name]      Browse and scaffold lab templates"
     echo "  bytec cheatsheet [topic]   View offline C reference guide"
     echo "  bytec share <file.c>       Share code online with web link"
@@ -569,6 +598,7 @@ case "$1" in
     backup) cmd_backup ;;
     restore) shift; cmd_restore "$@" ;;
     tutorial|quickstart) cmd_tutorial ;;
+    git) cmd_git ;;
     uninstall) cmd_uninstall ;;
     update) cmd_update ;;
     status) cmd_status ;;

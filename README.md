@@ -137,6 +137,7 @@ gcc lab1.c -o lab1
 | Command | Action |
 | :--- | :--- |
 | `bytec doctor` | Check installed compilers, storage links, git, and disk space |
+| `bytec git` | View or customize Git author name and email |
 | `bytec tutorial` | Run interactive 60-second walkthrough |
 | `bytec cheatsheet <topic>` | View offline guides for `printf`, `pointers`, `strings`, `loops`, `dsa`, `keys` |
 | `bytec share <file.c>` | Upload file to paste service and copy link to clipboard |
