@@ -1,0 +1,272 @@
+#!/bin/sh
+# ==============================================================================
+# ByteC: Compile and Run Runner (run / crun)
+# Usage: run [file.c|file.cpp] [-i input.txt] [-g] [--] [args...]
+# ==============================================================================
+
+BYTEC_HOME="${BYTEC_HOME:-$HOME/.bytec}"
+SCRIPT_DIR="$(cd "$(dirname "$0")" 2>/dev/null && pwd)"
+
+show_help() {
+    echo "ByteC Compile and Run (run / crun)"
+    echo "Usage:"
+    echo "  run                                  Compile and run last-edited file"
+    echo "  run <file.c|file.cpp>                Compile and run in one step"
+    echo "  run <file.c> -i <input.txt>          Read standard input from file"
+    echo "  run <file.c> -g                      Compile with debug symbols (-g -O0)"
+    echo "  run <file1.c> <file2.c>              Compile multiple source files"
+    echo "  run <file.c> [args...]               Pass arguments to program"
+    echo "  run -h | --help                      Show this help guide"
+    exit 0
+}
+
+if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+    show_help
+fi
+
+get_time_ms() {
+    ts=$(date +%s%3N 2>/dev/null)
+    case "$ts" in
+        *[!0-9]*|"")
+            echo "$(($(date +%s) * 1000))"
+            ;;
+        *)
+            echo "$ts"
+            ;;
+    esac
+}
+
+shell_quote() {
+    printf "'%s'" "$(printf "%s" "$1" | sed "s/'/'\\\\''/g")"
+}
+
+invoke_explain() {
+    TARGET_SRC="$1"
+    if [ -x "$BYTEC_HOME/bin/explain" ]; then
+        "$BYTEC_HOME/bin/explain" "$TARGET_SRC"
+    elif [ -x "$SCRIPT_DIR/explain" ]; then
+        "$SCRIPT_DIR/explain" "$TARGET_SRC"
+    elif command -v explain >/dev/null 2>&1; then
+        explain "$TARGET_SRC"
+    fi
+}
+
+SOURCES=""
+INPUT_FILE=""
+DEBUG_MODE=0
+PROG_ARGS=""
+IS_CPP=0
+PRIMARY_NAME=""
+PRIMARY_SRC=""
+SEEN_SOURCE=0
+AFTER_DASH=0
+
+while [ $# -gt 0 ]; do
+    if [ $AFTER_DASH -eq 1 ]; then
+        PROG_ARGS="$PROG_ARGS $(shell_quote "$1")"
+        shift
+        continue
+    fi
+
+    case "$1" in
+        --)
+            AFTER_DASH=1
+            ;;
+        -i|--input)
+            shift
+            INPUT_FILE="$1"
+            ;;
+        -g|--debug)
+            DEBUG_MODE=1
+            ;;
+        *.c|*.cpp|*.cc|*.cxx)
+            if [ $SEEN_SOURCE -eq 0 ] && [ ! -f "$1" ]; then
+                echo "Error: Source file '$1' not found." >&2
+                exit 1
+            fi
+            if [ -f "$1" ]; then
+                SOURCES="$SOURCES $(shell_quote "$1")"
+                SEEN_SOURCE=1
+                if [ -z "$PRIMARY_NAME" ]; then
+                    PRIMARY_NAME="$(basename "$1")"
+                    PRIMARY_SRC="$1"
+                fi
+                case "$1" in
+                    *.cpp|*.cc|*.cxx) IS_CPP=1 ;;
+                esac
+            else
+                PROG_ARGS="$PROG_ARGS $(shell_quote "$1")"
+            fi
+            ;;
+        *)
+            if [ $SEEN_SOURCE -eq 0 ] && { [ "$1" = "-h" ] || [ "$1" = "--help" ]; }; then
+                show_help
+            fi
+            PROG_ARGS="$PROG_ARGS $(shell_quote "$1")"
+            ;;
+    esac
+    shift
+done
+
+# Auto-detect from .last_file or single file in current directory when no source passed
+if [ -z "$SOURCES" ]; then
+    if [ -f "$BYTEC_HOME/.last_file" ]; then
+        LAST_CANDIDATE=$(head -n 1 "$BYTEC_HOME/.last_file" 2>/dev/null)
+        if [ -n "$LAST_CANDIDATE" ] && [ -f "$LAST_CANDIDATE" ]; then
+            PRIMARY_SRC="$LAST_CANDIDATE"
+            PRIMARY_NAME="$(basename "$LAST_CANDIDATE")"
+            SOURCES="$(shell_quote "$LAST_CANDIDATE")"
+            case "$LAST_CANDIDATE" in
+                *.cpp|*.cc|*.cxx) IS_CPP=1 ;;
+            esac
+        fi
+    fi
+fi
+
+if [ -z "$SOURCES" ]; then
+    FOUND_COUNT=0
+    FOUND_FILE=""
+    for f in *.c *.cpp *.cc *.cxx; do
+        if [ -f "$f" ]; then
+            FOUND_COUNT=$((FOUND_COUNT + 1))
+            FOUND_FILE="$f"
+        fi
+    done
+    if [ "$FOUND_COUNT" -eq 1 ]; then
+        PRIMARY_SRC="$FOUND_FILE"
+        PRIMARY_NAME="$(basename "$FOUND_FILE")"
+        SOURCES="$(shell_quote "$FOUND_FILE")"
+        case "$FOUND_FILE" in
+            *.cpp|*.cc|*.cxx) IS_CPP=1 ;;
+        esac
+    fi
+fi
+
+if [ -z "$SOURCES" ]; then
+    echo "Error: No source file specified and no recent file found." >&2
+    echo "Usage: run <file.c> [options]" >&2
+    exit 1
+fi
+
+# Record compiled file into ~/.bytec/.last_file
+if [ -n "$PRIMARY_SRC" ] && [ -f "$PRIMARY_SRC" ]; then
+    mkdir -p "$BYTEC_HOME" 2>/dev/null || true
+    SRC_DIR="$(cd "$(dirname "$PRIMARY_SRC")" 2>/dev/null && pwd)"
+    if [ -n "$SRC_DIR" ]; then
+        printf "%s/%s\n" "$SRC_DIR" "$(basename "$PRIMARY_SRC")" > "$BYTEC_HOME/.last_file" 2>/dev/null || true
+    fi
+fi
+
+TMP_DIR="${TMPDIR:-/tmp}"
+[ ! -d "$TMP_DIR" ] && mkdir -p "$TMP_DIR" 2>/dev/null
+BASE_STEM="${PRIMARY_NAME%.*}"
+BIN="$TMP_DIR/${BASE_STEM}_$$"
+
+cleanup() {
+    rm -f "$BIN" "${BIN}.err"
+}
+trap cleanup EXIT INT TERM
+
+echo "Compiling $PRIMARY_NAME..."
+START_COMPILE=$(get_time_ms)
+
+if [ $DEBUG_MODE -eq 1 ]; then
+    FLAGS="-g -O0 -Wall -Wextra"
+else
+    FLAGS="-O2 -Wall -Wextra"
+fi
+
+if [ $IS_CPP -eq 1 ]; then
+    COMPILER="clang++"
+    FLAGS="$FLAGS -std=c++20"
+else
+    COMPILER="clang"
+    FLAGS="$FLAGS -lm"
+fi
+
+eval "$COMPILER $FLAGS $SOURCES -o \"\$BIN\"" 2> "${BIN}.err"
+STATUS=$?
+
+if [ $STATUS -ne 0 ]; then
+    cat "${BIN}.err" >&2
+    echo "" >&2
+    echo "Compilation failed (exit code $STATUS)." >&2
+
+    if [ -x "$BYTEC_HOME/bin/explain" ] || [ -x "$SCRIPT_DIR/explain" ] || command -v explain >/dev/null 2>&1; then
+        invoke_explain "$PRIMARY_SRC"
+    else
+        if grep -q "expected ';'" "${BIN}.err"; then
+            echo "Tip: Check for a missing semicolon (;) before or on this line." >&2
+        fi
+        if grep -q "use of undeclared identifier" "${BIN}.err"; then
+            echo "Tip: Declare the variable before using it, or include its header." >&2
+        fi
+        if grep -q "conflicting types for" "${BIN}.err"; then
+            echo "Tip: Function signature does not match its earlier prototype." >&2
+        fi
+        if grep -q "implicit declaration of function" "${BIN}.err"; then
+            echo "Tip: Include the standard header for this function (such as <stdio.h> or <math.h>)." >&2
+        fi
+    fi
+    exit $STATUS
+fi
+
+END_COMPILE=$(get_time_ms)
+COMPILE_TIME=$((END_COMPILE - START_COMPILE))
+if [ $COMPILE_TIME -lt 0 ]; then COMPILE_TIME=0; fi
+
+echo "Compiled in ${COMPILE_TIME}ms"
+echo "----------------------------------------------"
+echo "Running $PRIMARY_NAME..."
+
+START_EXEC=$(get_time_ms)
+
+if [ -n "$INPUT_FILE" ]; then
+    if [ ! -f "$INPUT_FILE" ]; then
+        echo "Warning: Input file '$INPUT_FILE' not found. Using standard input." >&2
+        eval "\"$BIN\" $PROG_ARGS"
+    else
+        echo "Input source: $INPUT_FILE"
+        eval "\"$BIN\" $PROG_ARGS < \"\$INPUT_FILE\""
+    fi
+else
+    eval "\"$BIN\" $PROG_ARGS"
+fi
+
+EXEC_STATUS=$?
+END_EXEC=$(get_time_ms)
+EXEC_TIME=$((END_EXEC - START_EXEC))
+if [ $EXEC_TIME -lt 0 ]; then EXEC_TIME=0; fi
+
+echo ""
+echo "----------------------------------------------"
+if [ $EXEC_STATUS -eq 0 ]; then
+    echo "Exit: 0 | Execution Time: ${EXEC_TIME}ms"
+else
+    echo "Exit: $EXEC_STATUS | Execution Time: ${EXEC_TIME}ms"
+    case "$EXEC_STATUS" in
+        139)
+            echo "" >&2
+            echo "Runtime Crash: Segmentation Fault (SIGSEGV, exit code 139)." >&2
+            echo "Cause: Program accessed invalid memory (NULL pointer, out-of-bounds array index, or missing '&' in scanf)." >&2
+            echo "Fix: Check array bounds and pointer initialization, or run 'debug $PRIMARY_SRC'." >&2
+            invoke_explain "$PRIMARY_SRC"
+            ;;
+        136)
+            echo "" >&2
+            echo "Runtime Crash: Floating Point Exception (SIGFPE, exit code 136)." >&2
+            echo "Cause: Division by zero or modulo by zero during arithmetic." >&2
+            echo "Fix: Verify that denominators in '/' and '%' are never 0." >&2
+            invoke_explain "$PRIMARY_SRC"
+            ;;
+        134)
+            echo "" >&2
+            echo "Runtime Crash: Abort Signal (SIGABRT, exit code 134)." >&2
+            echo "Cause: Failed assert(), double free(), or corrupted heap memory." >&2
+            echo "Fix: Check free() calls and assertions, or run 'debug $PRIMARY_SRC'." >&2
+            invoke_explain "$PRIMARY_SRC"
+            ;;
+    esac
+fi
+
+exit $EXEC_STATUS

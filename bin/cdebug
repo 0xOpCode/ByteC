@@ -1,25 +1,62 @@
 #!/bin/sh
 # ==============================================================================
-# ByteC: GDB Debugger Wrapper (cdebug)
+# ByteC: GDB Debugger Wrapper (cdebug / debug)
 # Compiles with -g -O0 and starts GDB with a quick command reference
 # ==============================================================================
 
+BYTEC_HOME="${BYTEC_HOME:-$HOME/.bytec}"
+
 show_help() {
-    echo "ByteC GDB Debugger (cdebug)"
+    echo "ByteC GDB Debugger (debug / cdebug)"
     echo "Usage:"
-    echo "  cdebug <file.c|file.cpp>             Compile with debug symbols and start GDB"
-    echo "  cdebug -h | --help                   Show this help guide"
+    echo "  debug                                Debug last-edited C/C++ file"
+    echo "  debug <file.c|file.cpp>              Compile with debug symbols and start GDB"
+    echo "  debug -h | --help                    Show this help guide"
     exit 0
 }
 
-if [ -z "$1" ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
     show_help
 fi
 
 SRC="$1"
+
+if [ -z "$SRC" ]; then
+    if [ -f "$BYTEC_HOME/.last_file" ]; then
+        LAST_CANDIDATE=$(head -n 1 "$BYTEC_HOME/.last_file" 2>/dev/null)
+        if [ -n "$LAST_CANDIDATE" ] && [ -f "$LAST_CANDIDATE" ]; then
+            SRC="$LAST_CANDIDATE"
+        fi
+    fi
+fi
+
+if [ -z "$SRC" ]; then
+    FOUND_COUNT=0
+    FOUND_FILE=""
+    for f in *.c *.cpp *.cc *.cxx; do
+        if [ -f "$f" ]; then
+            FOUND_COUNT=$((FOUND_COUNT + 1))
+            FOUND_FILE="$f"
+        fi
+    done
+    if [ "$FOUND_COUNT" -eq 1 ]; then
+        SRC="$FOUND_FILE"
+    fi
+fi
+
+if [ -z "$SRC" ]; then
+    show_help
+fi
+
 if [ ! -f "$SRC" ]; then
     echo "Error: Source file '$SRC' not found." >&2
     exit 1
+fi
+
+mkdir -p "$BYTEC_HOME" 2>/dev/null || true
+SRC_DIR="$(cd "$(dirname "$SRC")" 2>/dev/null && pwd)"
+if [ -n "$SRC_DIR" ]; then
+    printf "%s/%s\n" "$SRC_DIR" "$(basename "$SRC")" > "$BYTEC_HOME/.last_file" 2>/dev/null || true
 fi
 
 if ! command -v gdb >/dev/null 2>&1; then

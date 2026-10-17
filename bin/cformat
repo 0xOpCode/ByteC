@@ -1,11 +1,14 @@
 #!/bin/sh
 # ==============================================================================
 # ByteC: C and C++ Code Formatter (cformat)
-# Formats code using clang-format with Allman or Google style
+# Formats code using fix or clang-format with Allman, Google, or LLVM style
 # ==============================================================================
 
+BYTEC_HOME="${BYTEC_HOME:-$HOME/.bytec}"
+SCRIPT_DIR="$(cd "$(dirname "$0")" 2>/dev/null && pwd)"
+
 show_help() {
-    echo "ByteC Code Formatter (cformat)"
+    echo "ByteC Code Formatter (cformat / fix)"
     echo "Usage:"
     echo "  cformat <file.c|file.cpp>            Format file in place"
     echo "  cformat *.c                          Format multiple files"
@@ -15,22 +18,13 @@ show_help() {
     exit 0
 }
 
-if [ -z "$1" ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
     show_help
 fi
 
-# Check for clang-format
-if ! command -v clang-format >/dev/null 2>&1; then
-    echo "Error: 'clang-format' is not installed." >&2
-    if [ -n "$PREFIX" ] && [ -d "$PREFIX" ] && echo "$PREFIX" | grep -q "com.termux"; then
-        echo "Install it in Termux via: pkg install clang" >&2
-    else
-        echo "Install it via: sudo apt install clang-format" >&2
-    fi
-    exit 1
-fi
-
 STYLE="allman"
+CUSTOM_STYLE=0
+ALL_MODE=0
 FILES=""
 
 while [ $# -gt 0 ]; do
@@ -38,9 +32,13 @@ while [ $# -gt 0 ]; do
         -s|--style)
             shift
             STYLE="$1"
+            CUSTOM_STYLE=1
             ;;
         --all)
-            FILES="$(ls *.c *.cpp *.h 2>/dev/null)"
+            ALL_MODE=1
+            for f in *.c *.cpp *.cc *.cxx *.h *.hpp; do
+                [ -f "$f" ] && FILES="$FILES $f"
+            done
             ;;
         *)
             FILES="$FILES $1"
@@ -49,8 +47,46 @@ while [ $# -gt 0 ]; do
     shift
 done
 
+if [ -z "$FILES" ] && [ $ALL_MODE -eq 0 ]; then
+    if [ -f "$BYTEC_HOME/.last_file" ]; then
+        LAST_F=$(head -n 1 "$BYTEC_HOME/.last_file" 2>/dev/null)
+        [ -n "$LAST_F" ] && [ -f "$LAST_F" ] && FILES="$LAST_F"
+    fi
+fi
+
 if [ -z "$FILES" ]; then
-    echo "Error: No files specified for formatting." >&2
+    show_help
+fi
+
+# Forward to fix when available and no custom style override is requested
+if [ "$CUSTOM_STYLE" -eq 0 ] && [ "${BYTEC_CFORMAT_GUARD:-0}" != "1" ]; then
+    FIX_CMD=""
+    if [ -x "$SCRIPT_DIR/fix" ]; then
+        FIX_CMD="$SCRIPT_DIR/fix"
+    elif [ -x "$BYTEC_HOME/bin/fix" ]; then
+        FIX_CMD="$BYTEC_HOME/bin/fix"
+    elif command -v fix >/dev/null 2>&1; then
+        FIX_CMD="fix"
+    fi
+
+    if [ -n "$FIX_CMD" ]; then
+        export BYTEC_CFORMAT_GUARD=1
+        if [ "$ALL_MODE" -eq 1 ]; then
+            "$FIX_CMD" --all && exit 0
+        elif [ -n "$FILES" ]; then
+            # shellcheck disable=SC2086
+            "$FIX_CMD" $FILES && exit 0
+        fi
+    fi
+fi
+
+if ! command -v clang-format >/dev/null 2>&1; then
+    echo "Error: 'clang-format' is not installed." >&2
+    if [ -n "$PREFIX" ] && [ -d "$PREFIX" ] && echo "$PREFIX" | grep -q "com.termux"; then
+        echo "Install it in Termux via: pkg install clang" >&2
+    else
+        echo "Install it via: sudo apt install clang-format" >&2
+    fi
     exit 1
 fi
 

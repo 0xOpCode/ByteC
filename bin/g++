@@ -1,7 +1,7 @@
 #!/bin/sh
 # ==============================================================================
 # ByteC: G++ Wrapper for Termux and Clang++
-# Forwards college lab g++ commands to clang++
+# Forwards college lab g++ commands to clang++ without recursion
 # ==============================================================================
 
 if [ "$1" = "--bytec-info" ]; then
@@ -9,14 +9,30 @@ if [ "$1" = "--bytec-info" ]; then
     exit 0
 fi
 
-if ! command -v clang++ >/dev/null 2>&1; then
-    echo "❌ Error: 'clang++' compiler is not installed." >&2
+BYTEC_HOME="${BYTEC_HOME:-$HOME/.bytec}"
+SCRIPT_DIR="$(cd "$(dirname "$0")" 2>/dev/null && pwd)"
+
+CLANGXX_BIN=""
+OLD_IFS="$IFS"
+IFS=":"
+for dir in $PATH; do
+    if [ "$dir" != "$BYTEC_HOME/bin" ] && [ "$dir" != "$SCRIPT_DIR" ]; then
+        if [ -x "$dir/clang++" ]; then
+            CLANGXX_BIN="$dir/clang++"
+            break
+        fi
+    fi
+done
+IFS="$OLD_IFS"
+
+if [ -z "$CLANGXX_BIN" ]; then
+    echo "Error: 'clang++' compiler is not installed." >&2
     if [ -n "$PREFIX" ] && [ -d "$PREFIX" ] && echo "$PREFIX" | grep -q "com.termux"; then
-        echo "💡 Run: pkg install clang" >&2
+        echo "Run: pkg install clang" >&2
     else
-        echo "💡 Install clang++: sudo apt install clang (or your system package manager)" >&2
+        echo "Install clang++: sudo apt install clang" >&2
     fi
     exit 1
 fi
 
-exec clang++ "$@"
+exec "$CLANGXX_BIN" "$@"

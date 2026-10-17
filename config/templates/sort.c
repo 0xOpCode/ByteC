@@ -99,7 +99,7 @@ int main()
             printf("Insertion Sorted: ");
             break;
         default:
-            printf("Invalid choice!\n");
+            printf("Invalid choice.\n");
             return 1;
     }
 

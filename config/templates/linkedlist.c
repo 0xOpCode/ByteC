@@ -18,7 +18,7 @@ struct Node *createNode(int data)
     struct Node *newNode = (struct Node *)malloc(sizeof(struct Node));
     if (!newNode)
     {
-        printf("Memory allocation failed!\n");
+        printf("Memory allocation failed.\n");
         exit(1);
     }
     newNode->data = data;
@@ -134,7 +134,7 @@ int main()
                 break;
             case 4:
                 freeList(head);
-                printf("Goodbye!\n");
+                printf("Exiting.\n");
                 return 0;
             default:
                 printf("Invalid choice. Try again.\n");

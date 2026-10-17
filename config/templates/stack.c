@@ -34,7 +34,7 @@ void push(struct Stack *s, int val)
 {
     if (isFull(s))
     {
-        printf("Stack Overflow! Cannot push %d\n", val);
+        printf("Stack overflow: cannot push %d.\n", val);
         return;
     }
     s->items[++(s->top)] = val;
@@ -45,7 +45,7 @@ int pop(struct Stack *s)
 {
     if (isEmpty(s))
     {
-        printf("Stack Underflow! Stack is empty.\n");
+        printf("Stack underflow: stack is empty.\n");
         return -1;
     }
     return s->items[(s->top)--];
@@ -116,7 +116,7 @@ int main()
                 printf("Exiting stack program.\n");
                 return 0;
             default:
-                printf("Invalid choice!\n");
+                printf("Invalid choice.\n");
         }
     }
     return 0;

@@ -1,0 +1,275 @@
+#!/bin/sh
+# ==============================================================================
+# ByteC: C and C++ File Creator, Editor, and Template Scaffolder (code / cnew)
+# Usage: code [filename.[c|cpp]] [-t template]
+# ==============================================================================
+
+BYTEC_HOME="${BYTEC_HOME:-$HOME/.bytec}"
+SCRIPT_DIR="$(cd "$(dirname "$0")" 2>/dev/null && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." 2>/dev/null && pwd)"
+
+if [ -d "$BYTEC_HOME/config/templates" ]; then
+    TEMPLATE_DIR="$BYTEC_HOME/config/templates"
+elif [ -d "$REPO_ROOT/config/templates" ]; then
+    TEMPLATE_DIR="$REPO_ROOT/config/templates"
+else
+    TEMPLATE_DIR="$BYTEC_HOME/config/templates"
+fi
+
+show_help() {
+    echo "ByteC Code Generator and Editor (code / cnew)"
+    echo "Usage:"
+    echo "  code                                 Interactive menu (new, template, recent)"
+    echo "  code <filename.c|filename.cpp>       Create or open C/C++ source file"
+    echo "  code <filename.c> -t <template>      Create using a lab or DSA template"
+    echo "  code -l | --list                     List all 18 lab and DSA templates"
+    echo "  code -h | --help                     Show this help guide"
+    echo ""
+    echo "Available Templates (18):"
+    echo "  hello, linkedlist, doublylinkedlist, stack, queue, binarytree, graph,"
+    echo "  sort, quicksort, searching, matrix, fileio, pointers, strings,"
+    echo "  recursion, structures, stl, oop"
+    exit 0
+}
+
+list_templates() {
+    echo "Available ByteC Lab and DSA Templates (18):"
+    echo "----------------------------------------------------------------"
+    echo "  C Fundamentals & Lab Programs:"
+    echo "    hello            - Hello World with command-line args"
+    echo "    pointers         - Dynamic memory (malloc/free) and pointer swap"
+    echo "    strings          - Custom string length, reverse, palindrome"
+    echo "    recursion        - Factorial, Fibonacci, GCD, Tower of Hanoi"
+    echo "    structures       - Student record struct array and sorting"
+    echo "    matrix           - 2D matrix addition, multiplication, transpose"
+    echo "    fileio           - File read, write, and line counting"
+    echo ""
+    echo "  Data Structures & Algorithms (C):"
+    echo "    linkedlist       - Singly linked list (insert, delete, display)"
+    echo "    doublylinkedlist - Doubly linked list forward/backward traversal"
+    echo "    stack            - Array-based stack (push, pop, peek)"
+    echo "    queue            - Circular queue implementation"
+    echo "    binarytree       - Binary search tree (insert, search, traversals)"
+    echo "    graph            - Graph BFS and DFS (adjacency list)"
+    echo "    sort             - Bubble, Selection, and Insertion sorts"
+    echo "    quicksort        - QuickSort and MergeSort divide-and-conquer"
+    echo "    searching        - Linear search and iterative/recursive binary search"
+    echo ""
+    echo "  C++ & Object-Oriented Programming (.cpp):"
+    echo "    stl              - C++20 STL containers (vector, map, set, sort)"
+    echo "    oop              - C++ classes, inheritance, polymorphism"
+    echo "----------------------------------------------------------------"
+    echo "Usage: code mylab.c -t stack"
+    echo "       code demo.cpp -t stl"
+    exit 0
+}
+
+record_last_file() {
+    TARGET_FILE="$1"
+    mkdir -p "$BYTEC_HOME" 2>/dev/null || true
+    TARGET_DIR="$(cd "$(dirname "$TARGET_FILE")" 2>/dev/null && pwd)"
+    if [ -n "$TARGET_DIR" ]; then
+        printf "%s/%s\n" "$TARGET_DIR" "$(basename "$TARGET_FILE")" > "$BYTEC_HOME/.last_file" 2>/dev/null || true
+    fi
+}
+
+open_editor() {
+    TARGET_FILE="$1"
+    record_last_file "$TARGET_FILE"
+    if [ "${BYTEC_NO_EDIT:-0}" = "1" ]; then
+        exit 0
+    fi
+    if command -v nvim >/dev/null 2>&1; then
+        exec nvim "$TARGET_FILE"
+    elif command -v nano >/dev/null 2>&1; then
+        exec nano "$TARGET_FILE"
+    else
+        exec vi "$TARGET_FILE"
+    fi
+}
+
+resolve_template_path() {
+    TNAME="$1"
+    if [ -f "$TEMPLATE_DIR/${TNAME}.c" ]; then
+        printf "%s\n" "$TEMPLATE_DIR/${TNAME}.c"
+        return 0
+    elif [ -f "$TEMPLATE_DIR/${TNAME}.cpp" ]; then
+        printf "%s\n" "$TEMPLATE_DIR/${TNAME}.cpp"
+        return 0
+    fi
+    return 1
+}
+
+TEMPLATE=""
+FILE=""
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -h|--help)
+            show_help
+            ;;
+        -l|--list|--templates)
+            list_templates
+            ;;
+        -t|--template)
+            shift
+            TEMPLATE="$1"
+            ;;
+        *)
+            if [ -z "$FILE" ]; then
+                FILE="$1"
+            fi
+            ;;
+    esac
+    shift
+done
+
+# Interactive menu when invoked with no arguments
+if [ -z "$FILE" ] && [ -z "$TEMPLATE" ]; then
+    echo "ByteC Code Editor and Generator"
+    echo "----------------------------------------------"
+    echo "  [1] Create new C file"
+    echo "  [2] Create from College Lab Template"
+    echo "  [3] Open recent file"
+    echo "----------------------------------------------"
+    printf "Select option [1-3] or enter filename: "
+    read -r CHOICE
+    case "$CHOICE" in
+        1|"")
+            printf "Enter file name (e.g. lab1.c): "
+            read -r FILE
+            if [ -z "$FILE" ]; then
+                echo "Error: Filename cannot be empty." >&2
+                exit 1
+            fi
+            ;;
+        2)
+            echo ""
+            echo "Templates: hello, linkedlist, doublylinkedlist, stack, queue,"
+            echo "           binarytree, graph, sort, quicksort, searching, matrix,"
+            echo "           fileio, pointers, strings, recursion, structures, stl, oop"
+            printf "Enter template name: "
+            read -r TEMPLATE
+            if [ -z "$TEMPLATE" ]; then
+                echo "Error: Template name cannot be empty." >&2
+                exit 1
+            fi
+            DEF_EXT="c"
+            case "$TEMPLATE" in
+                stl|oop) DEF_EXT="cpp" ;;
+            esac
+            printf "Enter file name (default: %s.%s): " "$TEMPLATE" "$DEF_EXT"
+            read -r FILE
+            if [ -z "$FILE" ]; then
+                FILE="${TEMPLATE}.${DEF_EXT}"
+            fi
+            ;;
+        3)
+            if [ -f "$BYTEC_HOME/.last_file" ]; then
+                LAST_F=$(head -n 1 "$BYTEC_HOME/.last_file" 2>/dev/null)
+            else
+                LAST_F=""
+            fi
+            if [ -n "$LAST_F" ] && [ -f "$LAST_F" ]; then
+                FILE="$LAST_F"
+            else
+                echo "No recent file recorded."
+                printf "Enter file name to open or create: "
+                read -r FILE
+                if [ -z "$FILE" ]; then
+                    echo "Error: Filename cannot be empty." >&2
+                    exit 1
+                fi
+            fi
+            ;;
+        *)
+            FILE="$CHOICE"
+            ;;
+    esac
+fi
+
+if [ -z "$FILE" ] && [ -n "$TEMPLATE" ]; then
+    case "$TEMPLATE" in
+        stl|oop) FILE="${TEMPLATE}.cpp" ;;
+        *) FILE="${TEMPLATE}.c" ;;
+    esac
+fi
+
+# Ensure appropriate extension
+case "$FILE" in
+    *.c|*.cpp|*.cc|*.cxx|*.h|*.hpp) ;;
+    *)
+        case "$TEMPLATE" in
+            stl|oop) FILE="${FILE}.cpp" ;;
+            *) FILE="${FILE}.c" ;;
+        esac
+        ;;
+esac
+
+if [ -f "$FILE" ]; then
+    echo "File '$FILE' exists. Opening in editor..."
+    open_editor "$FILE"
+fi
+
+DIRNAME=$(dirname "$FILE")
+[ "$DIRNAME" != "." ] && mkdir -p "$DIRNAME"
+
+DATE=$(date "+%Y-%m-%d")
+BASENAME=$(basename "$FILE")
+
+if [ -n "$TEMPLATE" ]; then
+    SRC_TEMPLATE=$(resolve_template_path "$TEMPLATE")
+    if [ -n "$SRC_TEMPLATE" ] && [ -f "$SRC_TEMPLATE" ]; then
+        cp "$SRC_TEMPLATE" "$FILE"
+        echo "Generated '$FILE' from '${TEMPLATE}' template."
+        open_editor "$FILE"
+    else
+        echo "Template '$TEMPLATE' not found. Creating standard file."
+        echo "Run 'code --list' to see available templates."
+    fi
+fi
+
+case "$FILE" in
+    *.cpp|*.cc|*.cxx)
+cat << EOF > "$FILE"
+/**
+ * File: $BASENAME
+ * Created: $DATE
+ * Environment: ByteC
+ */
+
+#include <iostream>
+#include <vector>
+#include <string>
+
+using namespace std;
+
+int main()
+{
+    cout << "Hello from ByteC C++" << endl;
+    return 0;
+}
+EOF
+    ;;
+    *)
+cat << EOF > "$FILE"
+/**
+ * File: $BASENAME
+ * Created: $DATE
+ * Environment: ByteC
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+
+int main(void)
+{
+    printf("Hello from ByteC\n");
+    return 0;
+}
+EOF
+    ;;
+esac
+
+echo "Created '$FILE'."
+open_editor "$FILE"

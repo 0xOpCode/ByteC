@@ -1,0 +1,379 @@
+#!/bin/sh
+# ==============================================================================
+# ByteC: 4-Layer Verification and Automated Test Runner (check)
+# Usage:
+#   check [file.c|file.cpp] [--quick]
+#   check <file.c> <testcase.txt>
+#   check <file.c> <input.txt> <expected.txt>
+# ==============================================================================
+
+show_help() {
+    echo "ByteC 4-Layer Code Checker and Test Runner (check / ctest)"
+    echo "Usage:"
+    echo "  check [file.c|file.cpp]                     Audit, compile, and verify program"
+    echo "  check [file.c|file.cpp] --quick             Run non-interactive check with 5s watchdog"
+    echo "  check <file.c> <testcase.txt>               Run 1 or more cases from testcase file"
+    echo "  check <file.c> <input.txt> <expected.txt>   Run test with input and expected files"
+    echo "  check -h | --help                           Show this help guide"
+    echo ""
+    echo "Multi-case testcase.txt format:"
+    echo "  --- INPUT ---"
+    echo "  5 10"
+    echo "  --- EXPECTED ---"
+    echo "  15"
+    echo "  --- INPUT ---"
+    echo "  20 30"
+    echo "  --- EXPECTED ---"
+    echo "  50"
+    exit 0
+}
+
+if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+    show_help
+fi
+
+QUICK_MODE=0
+POS_ARGS=""
+ARG_COUNT=0
+
+for arg in "$@"; do
+    case "$arg" in
+        -h|--help)
+            show_help
+            ;;
+        -q|--quick)
+            QUICK_MODE=1
+            ;;
+        *)
+            ARG_COUNT=$((ARG_COUNT + 1))
+            eval "POS_$ARG_COUNT=\$arg"
+            ;;
+    esac
+done
+
+SRC="$POS_1"
+ARG2="$POS_2"
+ARG3="$POS_3"
+
+if [ -z "$SRC" ]; then
+    if [ -f "$HOME/.bytec/.last_file" ]; then
+        CANDIDATE=$(head -n 1 "$HOME/.bytec/.last_file" 2>/dev/null)
+        if [ -n "$CANDIDATE" ] && [ -f "$CANDIDATE" ]; then
+            SRC="$CANDIDATE"
+        fi
+    fi
+    if [ -z "$SRC" ]; then
+        SRC=$(ls -t *.c *.cpp *.cc *.cxx 2>/dev/null | head -n 1)
+    fi
+fi
+
+if [ -z "$SRC" ] || [ ! -f "$SRC" ]; then
+    echo "Error: Source file '${SRC:-<none>}' not found." >&2
+    echo "Usage: check <file.c> [testcase.txt | input.txt expected.txt]" >&2
+    exit 1
+fi
+
+mkdir -p "$HOME/.bytec" 2>/dev/null
+printf "%s\n" "$SRC" > "$HOME/.bytec/.last_file" 2>/dev/null
+
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+TMP_DIR="${TMPDIR:-/tmp}"
+[ ! -d "$TMP_DIR" ] && mkdir -p "$TMP_DIR" 2>/dev/null
+
+BIN="$TMP_DIR/check_bin_$$"
+ACTUAL_OUT="$TMP_DIR/check_actual_$$.txt"
+TIMEOUT_FLAG="$TMP_DIR/check_timeout_$$"
+CASE_PREFIX="$TMP_DIR/check_case_$$"
+COMPILE_ERR="$TMP_DIR/check_err_$$.txt"
+
+cleanup() {
+    rm -f "$BIN" "$ACTUAL_OUT" "$TIMEOUT_FLAG" "$COMPILE_ERR" "${CASE_PREFIX}"_*
+}
+trap cleanup EXIT INT TERM
+
+echo "============================================================"
+echo "ByteC Verification: $SRC"
+echo "============================================================"
+
+# ------------------------------------------------------------------------------
+# Layer 1: Static Trap Audit
+# ------------------------------------------------------------------------------
+echo "[Layer 1/4] Static Trap Audit"
+TRAP_OUT="$TMP_DIR/check_traps_$$.txt"
+TRAP_COUNT=$(awk '
+BEGIN {
+    traps = 0
+    malloc_line = 0
+    has_free = 0
+}
+{
+    line = $0
+    sub(/\/\/.*$/, "", line)
+
+    if (line ~ /(^|[^a-zA-Z0-9_])scanf[ \t]*\(/) {
+        if (line ~ /%(d|i|u|f|lf|c|ld|lld|lu|hu|hd)/ && line !~ /%s/) {
+            after_fmt = line
+            sub(/^[^"]*".*"[ \t]*,[ \t]*/, "", after_fmt)
+            if (after_fmt != line && after_fmt !~ /&/) {
+                printf "  [Warning] Line %d: scanf() with numeric/char specifier lacks \x27&\x27 address operator.\n", NR > "/dev/stderr"
+                traps++
+            }
+        }
+    }
+    if (line ~ /fflush[ \t]*\([ \t]*stdin[ \t]*\)/) {
+        printf "  [Warning] Line %d: fflush(stdin) is undefined in standard C. Use getchar() loop instead.\n", NR > "/dev/stderr"
+        traps++
+    }
+    if (line ~ /(^|[ \t])void[ \t]+main[ \t]*\(/) {
+        printf "  [Warning] Line %d: void main() is non-standard. Use int main(void) and return 0.\n", NR > "/dev/stderr"
+        traps++
+    }
+    if (line ~ /(^|[^a-zA-Z0-9_])gets[ \t]*\(/) {
+        printf "  [Warning] Line %d: gets() was removed in C11. Use fgets(buf, sizeof(buf), stdin).\n", NR > "/dev/stderr"
+        traps++
+    }
+    if (line ~ /(^|[^a-zA-Z0-9_])(malloc|calloc)[ \t]*\(/) {
+        if (malloc_line == 0) malloc_line = NR
+    }
+    if (line ~ /(^|[^a-zA-Z0-9_])free[ \t]*\(/) {
+        has_free = 1
+    }
+}
+END {
+    if (malloc_line > 0 && has_free == 0) {
+        printf "  [Warning] Line %d: malloc()/calloc() used without free() in this file.\n", malloc_line > "/dev/stderr"
+        traps++
+    }
+    print traps
+}
+' "$SRC" 2>"$TRAP_OUT")
+
+if [ -s "$TRAP_OUT" ]; then
+    cat "$TRAP_OUT"
+else
+    echo "  No static traps detected."
+fi
+rm -f "$TRAP_OUT"
+
+# ------------------------------------------------------------------------------
+# Layer 2: Sanitized Compilation
+# ------------------------------------------------------------------------------
+echo "[Layer 2/4] Sanitized Compilation"
+case "$SRC" in
+    *.cpp|*.cc|*.cxx)
+        COMPILER="clang++"
+        BASE_FLAGS="-g -O0 -Wall -Wextra -fstack-protector-all -std=c++20"
+        LINK_FLAGS=""
+        ;;
+    *)
+        COMPILER="clang"
+        BASE_FLAGS="-g -O0 -Wall -Wextra -fstack-protector-all"
+        LINK_FLAGS="-lm"
+        ;;
+esac
+
+# Quick probe for -fsanitize=address,undefined support on host kernel / PRoot
+SAN_FLAGS=""
+PROBE_SRC="$TMP_DIR/bytec_san_probe_$$.c"
+PROBE_BIN="$TMP_DIR/bytec_san_probe_$$"
+printf "int main(void){return 0;}\n" > "$PROBE_SRC"
+if $COMPILER -fsanitize=address,undefined "$PROBE_SRC" -o "$PROBE_BIN" >/dev/null 2>&1; then
+    if "$PROBE_BIN" >/dev/null 2>&1; then
+        SAN_FLAGS="-fsanitize=address,undefined"
+    fi
+fi
+rm -f "$PROBE_SRC" "$PROBE_BIN"
+
+$COMPILER $BASE_FLAGS $SAN_FLAGS "$SRC" -o "$BIN" $LINK_FLAGS 2>"$COMPILE_ERR"
+if [ $? -ne 0 ]; then
+    cat "$COMPILE_ERR" >&2
+    echo "Compilation failed." >&2
+    if [ -x "$SCRIPT_DIR/explain" ]; then
+        "$SCRIPT_DIR/explain" "$SRC"
+    fi
+    exit 1
+fi
+if [ -s "$COMPILE_ERR" ]; then
+    cat "$COMPILE_ERR"
+fi
+echo "  Compiled '$SRC' with stack protection${SAN_FLAGS:+ and sanitizers}."
+
+# ------------------------------------------------------------------------------
+# Layer 3: 5-Second Infinite Loop Watchdog Runner
+# ------------------------------------------------------------------------------
+run_with_watchdog() {
+    IN_PATH="$1"
+    OUT_PATH="$2"
+    rm -f "$TIMEOUT_FLAG"
+
+    "$BIN" < "$IN_PATH" > "$OUT_PATH" 2>&1 &
+    RUN_PID=$!
+
+    (
+        sleep 5
+        if kill -0 "$RUN_PID" 2>/dev/null; then
+            : > "$TIMEOUT_FLAG"
+            kill -9 "$RUN_PID" 2>/dev/null
+        fi
+    ) >/dev/null 2>&1 &
+    WATCH_PID=$!
+
+    wait "$RUN_PID" 2>/dev/null
+    RUN_EXIT=$?
+
+    kill -9 "$WATCH_PID" 2>/dev/null
+    wait "$WATCH_PID" 2>/dev/null
+
+    if [ -f "$TIMEOUT_FLAG" ]; then
+        echo "TIMEOUT (5s): Infinite loop detected."
+        return 124
+    fi
+    return $RUN_EXIT
+}
+
+# ------------------------------------------------------------------------------
+# Layer 4: Multi-Case Test Runner
+# ------------------------------------------------------------------------------
+if [ -z "$ARG2" ] && [ -f "test.txt" ]; then
+    ARG2="test.txt"
+fi
+
+if [ -n "$ARG2" ] && [ -n "$ARG3" ]; then
+    if [ ! -f "$ARG2" ] || [ ! -f "$ARG3" ]; then
+        echo "Error: Input file '$ARG2' or expected file '$ARG3' not found." >&2
+        exit 1
+    fi
+    cp "$ARG2" "${CASE_PREFIX}_in_1.txt"
+    cp "$ARG3" "${CASE_PREFIX}_exp_1.txt"
+    TOTAL_CASES=1
+elif [ -n "$ARG2" ]; then
+    if [ ! -f "$ARG2" ]; then
+        echo "Error: Testcase file '$ARG2' not found." >&2
+        exit 1
+    fi
+    TOTAL_CASES=$(awk -v prefix="$CASE_PREFIX" '
+    BEGIN {
+        case_num = 0
+        mode = ""
+    }
+    /^[ \t]*---[ \t]*INPUT[ \t]*---[ \t]*\r?$/ {
+        case_num++
+        mode = "in"
+        in_file = prefix "_in_" case_num ".txt"
+        exp_file = prefix "_exp_" case_num ".txt"
+        printf "" > in_file
+        printf "" > exp_file
+        next
+    }
+    /^[ \t]*---[ \t]*EXPECTED[ \t]*---[ \t]*\r?$/ {
+        if (case_num == 0) {
+            case_num = 1
+            in_file = prefix "_in_1.txt"
+            printf "" > in_file
+        }
+        mode = "exp"
+        exp_file = prefix "_exp_" case_num ".txt"
+        printf "" > exp_file
+        next
+    }
+    {
+        sub(/\r$/, "")
+        if (mode == "in") {
+            print $0 >> in_file
+        } else if (mode == "exp") {
+            print $0 >> exp_file
+        }
+    }
+    END {
+        print case_num
+    }
+    ' "$ARG2")
+else
+    TOTAL_CASES=0
+fi
+
+if [ "$TOTAL_CASES" -gt 0 ]; then
+    echo "[Layer 3/4] 5-Second Watchdog Active"
+    echo "[Layer 4/4] Running $TOTAL_CASES Test Case(s)"
+    echo "------------------------------------------------------------"
+
+    PASS_COUNT=0
+    FAIL_COUNT=0
+    CASE_IDX=1
+
+    while [ $CASE_IDX -le "$TOTAL_CASES" ]; do
+        IN_F="${CASE_PREFIX}_in_${CASE_IDX}.txt"
+        EXP_F="${CASE_PREFIX}_exp_${CASE_IDX}.txt"
+
+        run_with_watchdog "$IN_F" "$ACTUAL_OUT"
+        EXEC_RC=$?
+
+        if [ $EXEC_RC -eq 124 ]; then
+            echo "Case #$CASE_IDX: FAIL (TIMEOUT 5s)"
+            FAIL_COUNT=$((FAIL_COUNT + 1))
+        elif [ $EXEC_RC -ne 0 ]; then
+            echo "Case #$CASE_IDX: FAIL (Exit code $EXEC_RC)"
+            cat "$ACTUAL_OUT"
+            FAIL_COUNT=$((FAIL_COUNT + 1))
+        else
+            diff -u -w -B "$EXP_F" "$ACTUAL_OUT" >/dev/null 2>&1
+            if [ $? -eq 0 ]; then
+                echo "Case #$CASE_IDX: PASS"
+                PASS_COUNT=$((PASS_COUNT + 1))
+            else
+                echo "Case #$CASE_IDX: FAIL"
+                echo "  Expected Output:"
+                sed 's/^/    /' "$EXP_F"
+                echo "  Actual Output:"
+                sed 's/^/    /' "$ACTUAL_OUT"
+                echo "  Differences (- Expected, + Actual):"
+                diff -u -w -B "$EXP_F" "$ACTUAL_OUT" | tail -n +3 | sed 's/^/    /'
+                FAIL_COUNT=$((FAIL_COUNT + 1))
+            fi
+        fi
+        CASE_IDX=$((CASE_IDX + 1))
+    done
+
+    echo "------------------------------------------------------------"
+    echo "Summary: $PASS_COUNT/$TOTAL_CASES passed."
+    if [ $FAIL_COUNT -eq 0 ]; then
+        echo "TEST PASSED. Output matches expected output."
+        exit 0
+    else
+        echo "TEST FAILED."
+        exit 1
+    fi
+fi
+
+# Single-file execution without testcase file
+echo "[Layer 3/4] 5-Second Watchdog Active"
+echo "[Layer 4/4] Program Execution"
+echo "------------------------------------------------------------"
+
+NEEDS_STDIN=0
+if grep -E '(scanf|fgets|getchar|gets|cin|getline)' "$SRC" >/dev/null 2>&1; then
+    NEEDS_STDIN=1
+fi
+
+if [ $QUICK_MODE -eq 1 ] || [ $NEEDS_STDIN -eq 0 ] || [ ! -t 0 ]; then
+    run_with_watchdog "/dev/null" "$ACTUAL_OUT"
+    RC=$?
+    if [ -s "$ACTUAL_OUT" ]; then
+        cat "$ACTUAL_OUT"
+    fi
+    echo "------------------------------------------------------------"
+    if [ $RC -eq 124 ]; then
+        exit 124
+    elif [ $RC -ne 0 ]; then
+        echo "Execution exited with code $RC."
+        exit $RC
+    fi
+    echo "Verification complete (exit code 0)."
+    exit 0
+else
+    "$BIN"
+    RC=$?
+    echo "------------------------------------------------------------"
+    echo "Verification complete (exit code $RC)."
+    exit $RC
+fi

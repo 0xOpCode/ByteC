@@ -8,7 +8,6 @@ document.addEventListener('DOMContentLoaded', () => {
       sidebar.classList.toggle('open');
     });
 
-    // Close on link click
     sidebar.querySelectorAll('a').forEach(link => {
       link.addEventListener('click', () => {
         sidebar.classList.remove('open');
@@ -16,13 +15,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Copy buttons
+  // Copy buttons for code blocks
   document.querySelectorAll('.copy-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      const code = btn.closest('.code-wrapper').querySelector('code').innerText;
+      const wrapper = btn.closest('.code-wrapper');
+      if (wrapper === null) return;
+      const code = wrapper.querySelector('code').innerText;
       navigator.clipboard.writeText(code).then(() => {
         const originalText = btn.innerText;
-        btn.innerText = 'Copied!';
+        btn.innerText = 'Copied';
         btn.style.color = '#10b981';
         setTimeout(() => {
           btn.innerText = originalText;
@@ -32,7 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Client-side search filter for navigation
+  // Sidebar navigation search filter
   const searchInput = document.getElementById('docs-search');
   if (searchInput) {
     searchInput.addEventListener('input', (e) => {
@@ -41,14 +42,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
       navItems.forEach(item => {
         const text = item.textContent.toLowerCase();
-        if (text.includes(query)) {
-          item.style.display = '';
-        } else {
-          item.style.display = 'none';
-        }
+        item.style.display = text.includes(query) ? '' : 'none';
       });
     });
   }
+
+  // Interactive 18 Templates search and category filter
+  const templateSearch = document.getElementById('template-search');
+  const filterBtns = document.querySelectorAll('.filter-btn');
+  const templateRows = document.querySelectorAll('#templates-table tbody tr');
+  let activeCategory = 'all';
+
+  function filterTemplates() {
+    const query = templateSearch ? templateSearch.value.toLowerCase().trim() : '';
+
+    templateRows.forEach(row => {
+      const category = row.getAttribute('data-category') || '';
+      const text = row.textContent.toLowerCase();
+      const matchesCategory = activeCategory === 'all' || category.includes(activeCategory);
+      const matchesQuery = query === '' || text.includes(query);
+
+      row.style.display = (matchesCategory && matchesQuery) ? '' : 'none';
+    });
+  }
+
+  if (templateSearch) {
+    templateSearch.addEventListener('input', filterTemplates);
+  }
+
+  filterBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      filterBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeCategory = btn.getAttribute('data-filter') || 'all';
+      filterTemplates();
+    });
+  });
 
   // Scroll spy for active sidebar link
   const sections = document.querySelectorAll('section');
@@ -56,7 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   window.addEventListener('scroll', () => {
     let current = '';
-    const scrollPos = window.scrollY + 100;
+    const scrollPos = window.scrollY + 120;
 
     sections.forEach(section => {
       if (section.offsetTop <= scrollPos) {

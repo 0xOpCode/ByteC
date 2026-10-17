@@ -3,21 +3,26 @@
 # ByteC: Productivity Aliases and Update Hook
 # ==============================================================================
 
-# Fast C Workflow Shortcuts
-alias c='cnew'
+# Beginner and Power-User Workflow Shortcuts
+alias start='bytec'
+alias c='code'
+alias r='run'
 alias cr='crun'
 alias cb='cbuild'
-alias cf='cformat'
-alias cdbg='cdebug'
-alias ct='ctest'
+alias cf='fix'
+alias cdbg='debug'
+alias ct='check'
+alias sub='submit'
+alias exp='explain'
 alias nv='nvim'
 alias cls='clear'
 alias proj='cd ~/c_projects'
 alias doc='bytec doctor'
 alias sheet='bytec cheatsheet'
 alias tpl='bytec template'
+alias resources='bytec resources'
 
-# Modern directory listing
+# Directory listing shortcuts
 alias ll='ls -la'
 alias la='ls -A'
 

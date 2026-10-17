@@ -1,0 +1,169 @@
+#!/bin/sh
+# ==============================================================================
+# ByteC: Allman Code Formatter and Static Typo Hinter (fix)
+# Usage: fix [file.c|file.cpp|--all]
+# ==============================================================================
+
+show_help() {
+    echo "ByteC Code Formatter and Typo Checker (fix)"
+    echo "Usage:"
+    echo "  fix [file.c|file.cpp]       Format file in Allman style and scan for typos"
+    echo "  fix --all                   Format all C/C++ files in current directory"
+    echo "  fix -h | --help             Show this help guide"
+    exit 0
+}
+
+if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+    show_help
+fi
+
+TMP_DIR="${TMPDIR:-/tmp}"
+[ ! -d "$TMP_DIR" ] && mkdir -p "$TMP_DIR" 2>/dev/null
+FMT_TMP="$TMP_DIR/fix_fmt_$$.txt"
+
+cleanup() {
+    rm -f "$FMT_TMP"
+}
+trap cleanup EXIT INT TERM
+
+awk_allman_format() {
+    IN_FILE="$1"
+    OUT_FILE="$2"
+    awk '
+    function print_indented(lvl, text,    k, pad) {
+        pad = ""
+        for (k = 0; k < lvl; k++) pad = pad "    "
+        print pad text
+    }
+    BEGIN {
+        indent = 0
+    }
+    {
+        sub(/\r$/, "")
+        sub(/^[ \t]+/, "")
+        sub(/[ \t]+$/, "")
+        line = $0
+
+        if (line == "") {
+            print ""
+            next
+        }
+
+        if (line ~ /^#/) {
+            print line
+            next
+        }
+
+        # Move trailing opening brace on non-comment line to next line (Allman style)
+        if (line ~ /\{$/ && line !~ /^\{$/ && line !~ /^\/\// && line !~ /^\/\*/) {
+            prefix = line
+            sub(/[ \t]*\{$/, "", prefix)
+            print_indented(indent, prefix)
+            print_indented(indent, "{")
+            indent++
+            next
+        }
+
+        if (line ~ /^\}/) {
+            if (indent > 0) indent--
+        }
+
+        print_indented(indent, line)
+
+        if (line ~ /^\{$/) {
+            indent++
+        }
+    }
+    ' "$IN_FILE" > "$OUT_FILE"
+}
+
+format_one_file() {
+    TARGET="$1"
+    if [ ! -f "$TARGET" ]; then
+        echo "Error: File '$TARGET' not found." >&2
+        return 1
+    fi
+
+    # Strip carriage returns first
+    tr -d '\r' < "$TARGET" > "$FMT_TMP"
+    cat "$FMT_TMP" > "$TARGET"
+
+    if command -v clang-format >/dev/null 2>&1; then
+        clang-format -style="{BasedOnStyle: LLVM, BreakBeforeBraces: Allman, IndentWidth: 4, TabWidth: 4, UseTab: Never, ColumnLimit: 90}" "$TARGET" > "$FMT_TMP" 2>/dev/null
+        if [ $? -eq 0 ] && [ -s "$FMT_TMP" ]; then
+            cat "$FMT_TMP" > "$TARGET"
+        else
+            awk_allman_format "$TARGET" "$FMT_TMP"
+            cat "$FMT_TMP" > "$TARGET"
+        fi
+    else
+        awk_allman_format "$TARGET" "$FMT_TMP"
+        cat "$FMT_TMP" > "$TARGET"
+    fi
+
+    # Strip trailing whitespace on each line and ensure final newline
+    awk '{ sub(/[ \t\r]+$/, ""); print $0 }' "$TARGET" > "$FMT_TMP"
+    cat "$FMT_TMP" > "$TARGET"
+
+    echo "Formatted '$TARGET' (Allman 4-space style, LF line endings)."
+
+    # Static typo hints
+    awk -v fname="$TARGET" '
+    {
+        line = $0
+        sub(/\/\/.*$/, "", line)
+
+        # Single = inside if (...)
+        if (line ~ /(^|[ \t])if[ \t]*\([^=!<>&|]*=[^=].*\)/) {
+            printf "  [Hint] %s:%d: Single \x27=\x27 inside if() condition. Use \x27==\x27 for comparison.\n", fname, NR
+        }
+        # scanf missing &
+        if (line ~ /(^|[^a-zA-Z0-9_])scanf[ \t]*\(/) {
+            if (line ~ /%(d|i|u|f|lf|c|ld|lld)/ && line !~ /%s/) {
+                after_fmt = line
+                sub(/^[^"]*".*"[ \t]*,[ \t]*/, "", after_fmt)
+                if (after_fmt != line && after_fmt !~ /&/) {
+                    printf "  [Hint] %s:%d: scanf() call may be missing \x27&\x27 before variable name.\n", fname, NR
+                }
+            }
+        }
+    }
+    ' "$TARGET"
+}
+
+if [ "$1" = "--all" ] || [ "$1" = "-a" ]; then
+    FOUND=0
+    for f in *.c *.cpp *.cc *.cxx *.h *.hpp; do
+        if [ -f "$f" ]; then
+            FOUND=1
+            format_one_file "$f"
+        fi
+    done
+    if [ $FOUND -eq 0 ]; then
+        echo "No C/C++ source files found in current directory." >&2
+        exit 1
+    fi
+    exit 0
+fi
+
+TARGET_FILE="$1"
+if [ -z "$TARGET_FILE" ]; then
+    if [ -f "$HOME/.bytec/.last_file" ]; then
+        CANDIDATE=$(head -n 1 "$HOME/.bytec/.last_file" 2>/dev/null)
+        if [ -n "$CANDIDATE" ] && [ -f "$CANDIDATE" ]; then
+            TARGET_FILE="$CANDIDATE"
+        fi
+    fi
+    if [ -z "$TARGET_FILE" ]; then
+        TARGET_FILE=$(ls -t *.c *.cpp *.cc *.cxx 2>/dev/null | head -n 1)
+    fi
+fi
+
+if [ -z "$TARGET_FILE" ]; then
+    echo "Error: No source file specified or found." >&2
+    echo "Usage: fix <file.c|file.cpp|--all>" >&2
+    exit 1
+fi
+
+format_one_file "$TARGET_FILE"
+exit $?

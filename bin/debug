@@ -1,0 +1,16 @@
+#!/bin/sh
+# ==============================================================================
+# ByteC: Beginner GDB Debugger Alias Wrapper (debug -> cdebug)
+# Usage: debug [file.c|file.cpp]
+# ==============================================================================
+
+BYTEC_HOME="${BYTEC_HOME:-$HOME/.bytec}"
+SCRIPT_DIR="$(cd "$(dirname "$0")" 2>/dev/null && pwd)"
+
+if [ -x "$SCRIPT_DIR/cdebug" ]; then
+    exec "$SCRIPT_DIR/cdebug" "$@"
+elif [ -x "$BYTEC_HOME/bin/cdebug" ]; then
+    exec "$BYTEC_HOME/bin/cdebug" "$@"
+else
+    exec cdebug "$@"
+fi

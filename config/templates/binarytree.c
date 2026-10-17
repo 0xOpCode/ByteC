@@ -125,7 +125,7 @@ int main()
                 printf("Enter value to search: ");
                 scanf("%d", &val);
                 if (search(root, val))
-                    printf("Found %d in tree!\n", val);
+                    printf("Found %d in tree.\n", val);
                 else
                     printf("%d not found in tree.\n", val);
                 break;
@@ -133,7 +133,7 @@ int main()
                 freeTree(root);
                 return 0;
             default:
-                printf("Invalid choice!\n");
+                printf("Invalid choice.\n");
         }
     }
 

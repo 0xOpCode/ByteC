@@ -1,13 +1,13 @@
 #!/bin/sh
 # ==============================================================================
 # ByteC: Multi-File Project Builder (cbuild)
-# Compiles all or specified C/C++ files into an executable
+# Compiles specified C/C++ files or project sources into an executable
 # ==============================================================================
 
 show_help() {
     echo "ByteC Project Builder (cbuild)"
     echo "Usage:"
-    echo "  cbuild                        Compile all .c or .cpp in current folder"
+    echo "  cbuild                        Compile project files in current folder"
     echo "  cbuild <files...> -o <target> Compile specific files into binary"
     echo "  cbuild clean                  Remove build artifacts (*.out, *.o, app)"
     echo "  cbuild -h | --help            Show this help guide"
@@ -25,7 +25,6 @@ if [ "$1" = "clean" ]; then
     exit 0
 fi
 
-# Detect C vs C++
 IS_CPP=0
 OUTPUT="app"
 FILES=""
@@ -50,10 +49,17 @@ while [ $# -gt 0 ]; do
     shift
 done
 
-# If no files specified, auto-detect in current directory
+# Auto-detect sources in current directory when no files are passed
 if [ -z "$FILES" ]; then
-    C_FILES=$(ls *.c 2>/dev/null)
-    CPP_FILES=$(ls *.cpp *.cc *.cxx 2>/dev/null)
+    C_FILES=""
+    for f in *.c; do
+        [ -f "$f" ] && C_FILES="$C_FILES $f"
+    done
+
+    CPP_FILES=""
+    for f in *.cpp *.cc *.cxx; do
+        [ -f "$f" ] && CPP_FILES="$CPP_FILES $f"
+    done
 
     if [ -n "$CPP_FILES" ]; then
         IS_CPP=1
@@ -62,8 +68,61 @@ if [ -z "$FILES" ]; then
         FILES="$C_FILES"
     else
         echo "Error: No .c or .cpp files found in current directory." >&2
-        echo "Create one with: cnew main.c" >&2
+        echo "Create one with: code main.c" >&2
         exit 1
+    fi
+
+    # Detect multiple files containing main() to prevent duplicate symbol linker errors
+    MAIN_COUNT=0
+    MAIN_FILES=""
+    for src in $FILES; do
+        if grep -Eq '(^|[^a-zA-Z0-9_])main[[:space:]]*\(' "$src" 2>/dev/null; then
+            MAIN_COUNT=$((MAIN_COUNT + 1))
+            MAIN_FILES="$MAIN_FILES $src"
+        fi
+    done
+
+    if [ "$MAIN_COUNT" -gt 1 ]; then
+        echo "Warning: Found $MAIN_COUNT files with a main() function in this folder:" >&2
+        IDX=1
+        for mf in $MAIN_FILES; do
+            echo "  [$IDX] $mf" >&2
+            IDX=$((IDX + 1))
+        done
+        echo "" >&2
+        echo "Linking multiple standalone programs together causes a duplicate main() error." >&2
+        echo "To run a single program, use: run <file.c>" >&2
+        if [ -t 0 ]; then
+            printf "Enter file number [1-%s] or filename to build (Enter to cancel): " "$MAIN_COUNT"
+            read -r PICK
+            if [ -z "$PICK" ]; then
+                echo "Build cancelled."
+                exit 1
+            fi
+            SELECTED=""
+            CUR=1
+            for mf in $MAIN_FILES; do
+                if [ "$PICK" = "$CUR" ] || [ "$PICK" = "$mf" ]; then
+                    SELECTED="$mf"
+                    break
+                fi
+                CUR=$((CUR + 1))
+            done
+            if [ -z "$SELECTED" ] && [ -f "$PICK" ]; then
+                SELECTED="$PICK"
+            fi
+            if [ -z "$SELECTED" ]; then
+                echo "Error: Invalid selection '$PICK'." >&2
+                exit 1
+            fi
+            FILES="$SELECTED"
+            IS_CPP=0
+            case "$SELECTED" in
+                *.cpp|*.cc|*.cxx) IS_CPP=1 ;;
+            esac
+        else
+            exit 1
+        fi
     fi
 fi
 
@@ -76,13 +135,11 @@ else
 fi
 
 echo "Building project ($COMPILER)..."
-echo "  Sources:$FILES"
+echo "  Sources: $FILES"
 echo "  Output:  $OUTPUT"
 
-START_MS=$(date +%s%3N 2>/dev/null || date +%s)
 $COMPILER $FLAGS $FILES -o "$OUTPUT"
 STATUS=$?
-END_MS=$(date +%s%3N 2>/dev/null || date +%s)
 
 if [ $STATUS -eq 0 ]; then
     echo "----------------------------------------------"
@@ -94,6 +151,6 @@ if [ $STATUS -eq 0 ]; then
     echo "Run with: ./$OUTPUT"
     echo "----------------------------------------------"
 else
-    echo "Build failed with exit code $STATUS" >&2
+    echo "Build failed with exit code $STATUS." >&2
     exit $STATUS
 fi
