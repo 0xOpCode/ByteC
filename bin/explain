@@ -1,0 +1,552 @@
+#!/bin/sh
+# ==============================================================================
+# ByteC: Diagnostic Translator and Crash Inspector (explain)
+# Usage: explain [file.c|file.cpp] [-i input.txt]
+# ==============================================================================
+
+show_help() {
+    echo "ByteC Diagnostic Explainer (explain)"
+    echo "Usage:"
+    echo "  explain [file.c|file.cpp]            Analyze compile errors and runtime crashes"
+    echo "  explain <file.c> -i <input.txt>      Supply input file for crash inspection"
+    echo "  explain -h | --help                  Show this help guide"
+    exit 0
+}
+
+if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+    show_help
+fi
+
+SRC=""
+INPUT_FILE=""
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -i|--input)
+            shift
+            INPUT_FILE="$1"
+            ;;
+        -h|--help)
+            show_help
+            ;;
+        *)
+            if [ -z "$SRC" ]; then
+                SRC="$1"
+            fi
+            ;;
+    esac
+    shift
+done
+
+resolve_source_file() {
+    if [ -n "$SRC" ]; then
+        return 0
+    fi
+    if [ -f "$HOME/.bytec/.last_file" ]; then
+        CANDIDATE=$(head -n 1 "$HOME/.bytec/.last_file" 2>/dev/null)
+        if [ -n "$CANDIDATE" ] && [ -f "$CANDIDATE" ]; then
+            SRC="$CANDIDATE"
+            return 0
+        fi
+    fi
+    LATEST=$(ls -t *.c *.cpp *.cc *.cxx 2>/dev/null | head -n 1)
+    if [ -n "$LATEST" ] && [ -f "$LATEST" ]; then
+        SRC="$LATEST"
+        return 0
+    fi
+    return 1
+}
+
+if ! resolve_source_file; then
+    echo "Error: No C/C++ source file specified or found in current directory." >&2
+    echo "Usage: explain <file.c|file.cpp>" >&2
+    exit 1
+fi
+
+if [ ! -f "$SRC" ]; then
+    echo "Error: Source file '$SRC' not found." >&2
+    exit 1
+fi
+
+mkdir -p "$HOME/.bytec" 2>/dev/null
+printf "%s\n" "$SRC" > "$HOME/.bytec/.last_file" 2>/dev/null
+
+TMP_DIR="${TMPDIR:-/tmp}"
+[ ! -d "$TMP_DIR" ] && mkdir -p "$TMP_DIR" 2>/dev/null
+DIAG_FILE="$TMP_DIR/explain_diag_$$.txt"
+LINK_ERR="$TMP_DIR/explain_link_$$.txt"
+BIN="$TMP_DIR/explain_$$"
+RUN_OUT="$TMP_DIR/explain_out_$$.txt"
+GDB_OUT="$TMP_DIR/explain_gdb_$$.txt"
+
+cleanup() {
+    rm -f "$DIAG_FILE" "$LINK_ERR" "$BIN" "$RUN_OUT" "$GDB_OUT" "${BIN}.core" core
+}
+trap cleanup EXIT INT TERM
+
+case "$SRC" in
+    *.cpp|*.cc|*.cxx)
+        COMPILER="clang++"
+        STD_FLAG="-std=c++20"
+        LM_FLAG=""
+        ;;
+    *)
+        COMPILER="clang"
+        STD_FLAG=""
+        LM_FLAG="-lm"
+        ;;
+esac
+
+echo "============================================================"
+echo "ByteC Diagnostic Report: $SRC"
+echo "============================================================"
+
+# Stage 1: Syntax and warning capture
+$COMPILER $STD_FLAG -Wall -Wextra -Wformat -Wuninitialized -fsyntax-only -fno-color-diagnostics "$SRC" 2>"$DIAG_FILE"
+SYNTAX_STATUS=$?
+
+HAS_ERRORS=0
+if [ $SYNTAX_STATUS -ne 0 ] || grep -q ": error:" "$DIAG_FILE" 2>/dev/null; then
+    HAS_ERRORS=1
+fi
+
+# Check linker stage if syntax check had no errors
+if [ $HAS_ERRORS -eq 0 ]; then
+    $COMPILER $STD_FLAG -g -O0 -Wall -Wextra -Wformat -Wuninitialized -fno-color-diagnostics "$SRC" -o "$BIN" $LM_FLAG 2>"$LINK_ERR"
+    LINK_STATUS=$?
+    if [ $LINK_STATUS -ne 0 ]; then
+        cat "$LINK_ERR" >> "$DIAG_FILE"
+        HAS_ERRORS=1
+    fi
+fi
+
+# Also detect gets() usage in source even when compiler treats it as implicit declaration
+if grep -n '[^a-zA-Z0-9_]gets[[:space:]]*(' "$SRC" >/dev/null 2>&1 || grep -n '^gets[[:space:]]*(' "$SRC" >/dev/null 2>&1; then
+    if ! grep -q "gets" "$DIAG_FILE" 2>/dev/null; then
+        GETS_LINE=$(grep -n 'gets[[:space:]]*(' "$SRC" | head -n 1 | cut -d: -f1)
+        printf "%s:%s:1: warning: 'gets' was removed in C11\n" "$SRC" "${GETS_LINE:-1}" >> "$DIAG_FILE"
+    fi
+fi
+
+# Stage 2: Parse diagnostics and source context for 20+ beginner mistakes
+if [ -s "$DIAG_FILE" ]; then
+    awk -v src_file="$SRC" '
+    BEGIN {
+        while ((getline line < src_file) > 0) {
+            src_lines[++total_src] = line
+        }
+        close(src_file)
+        issue_count = 0
+    }
+
+    function trim(s) {
+        sub(/^[ \t\r\n]+/, "", s)
+        sub(/[ \t\r\n]+$/, "", s)
+        return s
+    }
+
+    function get_src(ln) {
+        if (ln >= 1 && ln <= total_src) return trim(src_lines[ln])
+        return ""
+    }
+
+    function prev_nonempty_line(ln,    i) {
+        for (i = ln - 1; i >= 1; i--) {
+            if (trim(src_lines[i]) != "") return i
+        }
+        return ln
+    }
+
+    function map_header(sym) {
+        if (sym ~ /^(printf|scanf|fgets|fputs|getchar|putchar|puts|fopen|fclose|fprintf|fscanf|sprintf|snprintf|perror|feof|stdin|stdout|stderr|FILE|NULL|EOF)$/) return "<stdio.h>"
+        if (sym ~ /^(malloc|calloc|realloc|free|exit|abs|labs|atoi|atof|atol|strtol|rand|srand|qsort|bsearch|size_t|EXIT_SUCCESS|EXIT_FAILURE)$/) return "<stdlib.h>"
+        if (sym ~ /^(sqrt|pow|sin|cos|tan|asin|acos|atan|atan2|fabs|floor|ceil|round|log|log10|exp|fmod|hypot|M_PI)$/) return "<math.h>"
+        if (sym ~ /^(strlen|strcpy|strncpy|strcmp|strncmp|strcat|strncat|strchr|strstr|strtok|memset|memcpy|memmove|memcmp)$/) return "<string.h>"
+        if (sym ~ /^(bool|true|false)$/) return "<stdbool.h>"
+        if (sym ~ /^(isdigit|isalpha|isalnum|isspace|isupper|islower|ispunct|tolower|toupper)$/) return "<ctype.h>"
+        if (sym ~ /^(INT_MAX|INT_MIN|LONG_MAX|LONG_MIN|LLONG_MAX|LLONG_MIN|UINT_MAX|CHAR_BIT)$/) return "<limits.h>"
+        if (sym ~ /^(time|clock|difftime|localtime|strftime|time_t|CLOCKS_PER_SEC)$/) return "<time.h>"
+        if (sym ~ /^(int8_t|int16_t|int32_t|int64_t|uint8_t|uint16_t|uint32_t|uint64_t|uintptr_t)$/) return "<stdint.h>"
+        if (sym ~ /^(assert)$/) return "<assert.h>"
+        return ""
+    }
+
+    function emit_explanation(where_str, why_str, before_str, after_str) {
+        issue_count++
+        printf "\nIssue #%d\n", issue_count
+        printf "  [Where]       %s\n", where_str
+        printf "  [Why It Failed]\n"
+        printf "    %s\n", why_str
+        printf "  [How To Fix (Before -> After)]\n"
+        printf "    Before: %s\n", before_str
+        printf "    After:  %s\n", after_str
+    }
+
+    {
+        raw_Lines[++num_raw] = $0
+    }
+
+    END {
+        for (i = 1; i <= num_raw; i++) {
+            line = raw_Lines[i]
+
+            # Linker error: missing main
+            if (line ~ /undefined reference to `main\x27/ || line ~ /undefined reference to \x27main\x27/ || line ~ /entry point .* undefined/) {
+                if (!seen["missing_main"]++) {
+                    emit_explanation( \
+                        src_file " (program entry point)", \
+                        "The linker could not find a main() function. Every standalone C or C++ program starts execution at main().", \
+                        "int my_function() { return 0; }", \
+                        "int main(void)\n    {\n        return 0;\n    }")
+                }
+                continue
+            }
+
+            # Match file:line:col: severity: message
+            if (match(line, /^[^:]+:[0-9]+:[0-9]+: (error|warning|fatal error): /)) {
+                split(line, parts, ":")
+                ln = parts[2] + 0
+                col = parts[3] + 0
+                rest = substr(line, RLENGTH + 1)
+                sev = (line ~ /: warning: /) ? "Warning" : "Error"
+                code_line = get_src(ln)
+                where_loc = sprintf("%s, line %d, column %d (%s)", src_file, ln, col, sev)
+
+                # Look ahead for matching brace/paren note
+                match_note_ln = 0
+                if (i + 1 <= num_raw && raw_Lines[i + 1] ~ /: note: to match this /) {
+                    split(raw_Lines[i + 1], np, ":")
+                    match_note_ln = np[2] + 0
+                }
+                if (i + 2 <= num_raw && raw_Lines[i + 2] ~ /: note: to match this /) {
+                    split(raw_Lines[i + 2], np, ":")
+                    match_note_ln = np[2] + 0
+                }
+
+                # 1. Missing semicolon
+                if (rest ~ /expected \x27;\x27/) {
+                    prev_ln = prev_nonempty_line(ln)
+                    prev_code = get_src(prev_ln)
+                    if (rest ~ /after expression/ && prev_ln < ln && prev_code != "" && prev_code !~ /[;{}]$/) {
+                        target_ln = prev_ln
+                        target_code = prev_code
+                    } else if (code_line != "" && code_line !~ /[;{}]$/) {
+                        target_ln = ln
+                        target_code = code_line
+                    } else {
+                        target_ln = prev_ln
+                        target_code = (prev_code != "") ? prev_code : "printf(\"Hello\")"
+                    }
+                    emit_explanation( \
+                        sprintf("%s, line %d (detected near line %d)", src_file, target_ln, ln), \
+                        "A statement is missing its closing semicolon (;). C requires a semicolon at the end of every statement.", \
+                        target_code, \
+                        target_code ";")
+                }
+                # 2. scanf missing &
+                else if (rest ~ /format specifies type \x27[^*]+\*\x27 but the argument has type/ && code_line ~ /scanf/) {
+                    emit_explanation( \
+                        where_loc " -> " code_line, \
+                        "scanf() needs the memory address of the variable so it can store the input value. You passed the variable value instead of its address (&var).", \
+                        "scanf(\"%d\", x);", \
+                        "scanf(\"%d\", &x);")
+                }
+                # 3. Format specifier mismatch in printf/scanf
+                else if (rest ~ /format specifies type \x27.*\x27 but the argument has type/) {
+                    emit_explanation( \
+                        where_loc " -> " code_line, \
+                        "The format specifier (%d, %f, %s, %c, %lf) does not match the data type of the variable passed to printf/scanf (" rest ").", \
+                        "double x = 3.14; printf(\"%d\", x);", \
+                        "double x = 3.14; printf(\"%f\", x);")
+                }
+                # 4. Assignment in condition
+                else if (rest ~ /using the result of an assignment as a condition/) {
+                    fixed_cond = code_line
+                    sub(/=/, "==", fixed_cond)
+                    emit_explanation( \
+                        where_loc " -> " code_line, \
+                        "Single equals (=) assigns a value instead of comparing values. Inside if() or while(), a single (=) overwrites the variable.", \
+                        (code_line != "" ? code_line : "if (a = 5)"), \
+                        (fixed_cond != "" ? fixed_cond : "if (a == 5)"))
+                }
+                # 5. gets removed in C11
+                else if (rest ~ /\x27gets\x27/) {
+                    emit_explanation( \
+                        where_loc " -> " code_line, \
+                        "gets() was removed from the C11 standard because it does not check buffer length and causes buffer overflows.", \
+                        "gets(buf);", \
+                        "fgets(buf, sizeof(buf), stdin);")
+                }
+                # 6. Undeclared identifier / implicit function declaration / unknown type bool
+                else if (rest ~ /use of undeclared identifier/ || rest ~ /implicit declaration of function/ || rest ~ /call to undeclared (library )?function/ || rest ~ /unknown type name \x27bool\x27/ || rest ~ /undeclared identifier/) {
+                    sym = ""
+                    if (match(rest, /\x27[^\x27]+\x27/)) {
+                        sym = substr(rest, RSTART + 1, RLENGTH - 2)
+                    }
+                    hdr = map_header(sym)
+                    if (hdr != "") {
+                        emit_explanation( \
+                            where_loc " -> " code_line, \
+                            sprintf("Symbol \x27%s\x27 belongs to standard library header %s, which is not included at the top of the file.", sym, hdr), \
+                            sprintf("%s", (code_line != "" ? code_line : sym "(...);")), \
+                            sprintf("Add #include %s at line 1", hdr))
+                    } else {
+                        emit_explanation( \
+                            where_loc " -> " code_line, \
+                            sprintf("Identifier \x27%s\x27 is used before being declared. Check for a spelling typo or declare the variable with its type before use.", sym), \
+                            (code_line != "" ? code_line : sym " = 10;"), \
+                            "int " (sym != "" ? sym : "count") " = 10;")
+                    }
+                }
+                # 7. Uninitialized variable used
+                else if (rest ~ /is used uninitialized/ || rest ~ /may be used uninitialized/) {
+                    sym = "x"
+                    if (match(rest, /\x27[^\x27]+\x27/)) {
+                        sym = substr(rest, RSTART + 1, RLENGTH - 2)
+                    }
+                    emit_explanation( \
+                        where_loc " -> " code_line, \
+                        sprintf("Variable \x27%s\x27 is read before any value is stored in it. Local variables on the stack hold leftover garbage values until initialized.", sym), \
+                        "int " sym ";", \
+                        "int " sym " = 0;")
+                }
+                # 8. Array index out of bounds
+                else if (rest ~ /array index .* is past the end/ || rest ~ /array index .* is before the beginning/) {
+                    emit_explanation( \
+                        where_loc " -> " code_line, \
+                        "Array index is outside valid bounds. An array of size N has valid indices from 0 to N - 1. Accessing index N reads or writes past the array.", \
+                        "int arr[5]; arr[5] = 10;", \
+                        "int arr[5]; arr[4] = 10; /* valid indices: 0..4 */")
+                }
+                # 9. Non-void function does not return a value
+                else if (rest ~ /non-void function does not return a value/ || rest ~ /control reaches end of non-void function/) {
+                    emit_explanation( \
+                        where_loc " -> " code_line, \
+                        "This function is declared to return a value (such as int), but execution reaches the closing brace without a return statement.", \
+                        "int calculate(int a) { int b = a * 2; }", \
+                        "int calculate(int a) { int b = a * 2; return b; }")
+                }
+                # 10. Void function returning a value
+                else if (rest ~ /void function .* should not return a value/) {
+                    emit_explanation( \
+                        where_loc " -> " code_line, \
+                        "A function declared with return type void cannot return a value. Change the return type to int/double or use a bare return; statement.", \
+                        "void add(int a, int b) { return a + b; }", \
+                        "int add(int a, int b) { return a + b; }")
+                }
+                # 11. Redefinition of variable or function
+                else if (rest ~ /redefinition of \x27/) {
+                    sym = "x"
+                    if (match(rest, /\x27[^\x27]+\x27/)) {
+                        sym = substr(rest, RSTART + 1, RLENGTH - 2)
+                    }
+                    emit_explanation( \
+                        where_loc " -> " code_line, \
+                        sprintf("Identifier \x27%s\x27 is declared more than once in the same scope. Declare a variable once, then assign to it without repeating the type.", sym), \
+                        "int " sym " = 1;\n    int " sym " = 2;", \
+                        "int " sym " = 1;\n    " sym " = 2;")
+                }
+                # 12. Conflicting types for function
+                else if (rest ~ /conflicting types for \x27/) {
+                    sym = "func"
+                    if (match(rest, /\x27[^\x27]+\x27/)) {
+                        sym = substr(rest, RSTART + 1, RLENGTH - 2)
+                    }
+                    emit_explanation( \
+                        where_loc " -> " code_line, \
+                        sprintf("Function \x27%s\x27 has a definition whose parameter types or return type do not match its earlier declaration or prototype.", sym), \
+                        "int " sym "(int a);\n    float " sym "(int a, int b) { ... }", \
+                        "int " sym "(int a);\n    int " sym "(int a) { ... }")
+                }
+                # 13. void main
+                else if (rest ~ /\x27main\x27 must return \x27int\x27/ || rest ~ /return type of \x27main\x27 is not \x27int\x27/) {
+                    emit_explanation( \
+                        where_loc " -> " code_line, \
+                        "Standard C and C++ require main() to return an int exit status code to the operating system.", \
+                        "void main()", \
+                        "int main(void)")
+                }
+                # 14. Unclosed { or (
+                else if (rest ~ /expected \x27\}\x27/ || rest ~ /expected \x27\)\x27/) {
+                    brace_ch = (rest ~ /\}/) ? "}" : ")"
+                    open_ch = (brace_ch == "}") ? "{" : "("
+                    note_info = (match_note_ln > 0) ? sprintf(" (opening \x27%s\x27 is on line %d: %s)", open_ch, match_note_ln, get_src(match_note_ln)) : ""
+                    emit_explanation( \
+                        where_loc note_info, \
+                        sprintf("Missing closing \x27%s\x27%s. Every opening \x27%s\x27 must have a matching closing \x27%s\x27.", brace_ch, note_info, open_ch, brace_ch), \
+                        (match_note_ln > 0 ? get_src(match_note_ln) : "if (x > 0) {"), \
+                        (match_note_ln > 0 ? get_src(match_note_ln) " ... " brace_ch : "if (x > 0) { ... }"))
+                }
+                # 15. Multi-character character constant / single vs double quotes
+                else if (rest ~ /multi-character character constant/ || (code_line ~ /\x27[^\x27]{2,}\x27/ && rest ~ /conversion/)) {
+                    emit_explanation( \
+                        where_loc " -> " code_line, \
+                        "Single quotes (\x27 \x27) are for a single char only. Multi-character text strings must use double quotes (\" \").", \
+                        "char *msg = \x27hello\x27;", \
+                        "const char *msg = \"hello\";")
+                }
+                # 16. Division by zero
+                else if (rest ~ /division by zero is undefined/ || rest ~ /remainder by zero is undefined/) {
+                    emit_explanation( \
+                        where_loc " -> " code_line, \
+                        "Dividing or taking modulo by zero is undefined in C and triggers a hardware arithmetic crash (SIGFPE) at runtime.", \
+                        "int r = total / 0;", \
+                        "if (divisor != 0) { int r = total / divisor; }")
+                }
+                # 17. Too few or too many arguments to function or format string
+                else if (rest ~ /too few arguments to function/ || rest ~ /too many arguments to function/ || rest ~ /more \x27%\x27 conversions than data arguments/ || rest ~ /data argument not used by format string/) {
+                    emit_explanation( \
+                        where_loc " -> " code_line, \
+                        "The number of arguments passed to the function or printf/scanf format string does not match the expected parameter count (" rest ").", \
+                        "printf(\"%d %d\\n\", a);", \
+                        "printf(\"%d %d\\n\", a, b);")
+                }
+                # 18. Missing header file
+                else if (rest ~ /file not found/) {
+                    emit_explanation( \
+                        where_loc " -> " code_line, \
+                        "The #include header file name was not found. Check header spelling (for example <stdio.h> instead of <studio.h>).", \
+                        "#include <studio.h>", \
+                        "#include <stdio.h>")
+                }
+                # 19. Modifying const or string literal
+                else if (rest ~ /cannot assign to variable .* with const-qualified type/ || rest ~ /read-only variable is not assignable/) {
+                    emit_explanation( \
+                        where_loc " -> " code_line, \
+                        "A variable declared with const cannot be modified after initialization.", \
+                        "const int max = 10; max = 20;", \
+                        "int max = 10; max = 20;")
+                }
+                # 20. Empty body after if/while/for due to stray semicolon
+                else if (rest ~ /statement has empty body/ || rest ~ /loop has empty body/) {
+                    emit_explanation( \
+                        where_loc " -> " code_line, \
+                        "A stray semicolon (;) right after if(...), for(...), or while(...) ends the control statement before the block, so the block after it executes every time.", \
+                        "if (x > 0); { printf(\"positive\\n\"); }", \
+                        "if (x > 0) { printf(\"positive\\n\"); }")
+                }
+                # 21. Incompatible pointer/integer or type conversion
+                else if (rest ~ /incompatible pointer to integer/ || rest ~ /incompatible integer to pointer/ || rest ~ /assigning to .* from incompatible type/ || rest ~ /initializing .* with an expression of incompatible type/) {
+                    emit_explanation( \
+                        where_loc " -> " code_line, \
+                        "The value on the right side has a type that cannot be stored in the variable on the left side (" rest ").", \
+                        (code_line != "" ? code_line : "int x = \"hello\";"), \
+                        "Match the variable type to the value (for example: const char *s = \"hello\"; or int x = 42;)")
+                }
+                # Fallback for any other error or warning
+                else {
+                    emit_explanation( \
+                        where_loc " -> " code_line, \
+                        rest, \
+                        (code_line != "" ? code_line : "(see line " ln ")"), \
+                        "Fix the syntax or type mismatch indicated on line " ln)
+                }
+            }
+        }
+    }
+    ' "$DIAG_FILE"
+fi
+
+if [ $HAS_ERRORS -ne 0 ]; then
+    echo ""
+    echo "------------------------------------------------------------"
+    echo "Status: Compilation failed. Fix the issues above and run explain again."
+    echo "------------------------------------------------------------"
+    exit 1
+fi
+
+# Stage 3: Compile with -g -O0 and run under crash inspection
+$COMPILER $STD_FLAG -g -O0 "$SRC" -o "$BIN" $LM_FLAG 2>/dev/null
+if [ $? -ne 0 ] || [ ! -x "$BIN" ]; then
+    echo "Status: Syntax check passed, but binary could not be produced."
+    exit 1
+fi
+
+if [ -n "$INPUT_FILE" ] && [ -f "$INPUT_FILE" ]; then
+     FEED_IN="$INPUT_FILE"
+elif [ -f "input.txt" ]; then
+    FEED_IN="input.txt"
+else
+    FEED_IN="/dev/null"
+fi
+
+# Run with a 3-second watchdog so infinite loops or blocking reads do not freeze explain
+"$BIN" < "$FEED_IN" > "$RUN_OUT" 2>&1 &
+RUN_PID=$!
+(
+    sleep 3
+    kill -0 "$RUN_PID" 2>/dev/null && kill -9 "$RUN_PID" 2>/dev/null
+) >/dev/null 2>&1 &
+WATCH_PID=$!
+
+wait "$RUN_PID" 2>/dev/null
+EXIT_CODE=$?
+kill -9 "$WATCH_PID" 2>/dev/null
+wait "$WATCH_PID" 2>/dev/null
+
+CRASH_SIGNAL=""
+CRASH_WHY=""
+CRASH_BEFORE=""
+CRASH_AFTER=""
+
+if [ $EXIT_CODE -eq 139 ] || [ $EXIT_CODE -eq 11 ]; then
+    CRASH_SIGNAL="Exit 139 (SIGSEGV - Segmentation Fault)"
+    CRASH_WHY="The program accessed memory it does not own. Common causes: dereferencing a NULL or uninitialized pointer, accessing an array index out of bounds, or forgetting & in scanf()."
+    CRASH_BEFORE="int *p = NULL; *p = 42;  /* or arr[100000] = 1; */"
+    CRASH_AFTER="int val = 42; int *p = &val; *p = 42;"
+elif [ $EXIT_CODE -eq 136 ] || [ $EXIT_CODE -eq 8 ]; then
+    CRASH_SIGNAL="Exit 136 (SIGFPE - Arithmetic Exception)"
+    CRASH_WHY="The CPU trapped an invalid arithmetic operation, most often integer division by zero (a / 0) or modulo by zero (a % 0)."
+    CRASH_BEFORE="int ans = a / b;  /* when b is 0 */"
+    CRASH_AFTER="if (b != 0) { int ans = a / b; }"
+elif [ $EXIT_CODE -eq 134 ] || [ $EXIT_CODE -eq 6 ]; then
+    CRASH_SIGNAL="Exit 134 (SIGABRT - Abort Signal)"
+    CRASH_WHY="The program aborted execution. Common causes: a failed assert() check, calling free() twice on the same pointer, or heap buffer corruption."
+    CRASH_BEFORE="free(ptr); free(ptr);"
+    CRASH_AFTER="free(ptr); ptr = NULL;"
+fi
+
+if [ -n "$CRASH_SIGNAL" ]; then
+    CRASH_WHERE="$SRC (runtime crash: $CRASH_SIGNAL)"
+    if command -v gdb >/dev/null 2>&1; then
+        gdb --batch -ex "run < $FEED_IN" -ex "bt" "$BIN" > "$GDB_OUT" 2>&1
+        CRASH_LOC=$(awk -v sf="$SRC" '
+            /at [^ ]+:[0-9]+/ {
+                for (i = 1; i <= NF; i++) {
+                    if ($i == "at" && (i + 1) <= NF) {
+                        loc = $(i + 1)
+                        if (index(loc, sf) > 0 || loc ~ /\.(c|cpp|cc|cxx):[0-9]+$/) {
+                            print loc
+                            exit
+                        }
+                    }
+                }
+            }
+        ' "$GDB_OUT")
+        if [ -n "$CRASH_LOC" ]; then
+            CRASH_LN=$(printf "%s" "$CRASH_LOC" | awk -F: '{print $NF}')
+            CRASH_CODE=$(sed -n "${CRASH_LN}p" "$SRC" 2>/dev/null | sed 's/^[[:space:]]*//')
+            CRASH_WHERE="$CRASH_LOC -> $CRASH_CODE ($CRASH_SIGNAL)"
+        fi
+    fi
+
+    echo ""
+    echo "Runtime Crash Detected"
+    echo "  [Where]       $CRASH_WHERE"
+    echo "  [Why It Failed]"
+    echo "    $CRASH_WHY"
+    echo "  [How To Fix (Before -> After)]"
+    echo "    Before: $CRASH_BEFORE"
+    echo "    After:  $CRASH_AFTER"
+    echo "------------------------------------------------------------"
+    exit $EXIT_CODE
+fi
+
+echo ""
+if [ -s "$DIAG_FILE" ]; then
+    echo "Status: Compiled with warnings (0 errors). Runtime check exited with code $EXIT_CODE."
+else
+    echo "Status: 0 syntax errors, 0 warnings, and no runtime crash detected (exit code $EXIT_CODE)."
+fi
+echo "============================================================"
+exit 0

@@ -1,0 +1,457 @@
+#!/bin/sh
+# ==============================================================================
+# ByteC: 10-Lesson Interactive C Tutorial and Challenge Runner (learn)
+# Usage: learn [1-10] [--list] [--run] [--practice]
+# ==============================================================================
+
+show_help() {
+    echo "ByteC Interactive C Tutorial (learn)"
+    echo "Usage:"
+    echo "  learn                    Open interactive 10-lesson menu"
+    echo "  learn <1-10>             Display lesson guide, example code, and challenge"
+    echo "  learn <1-10> --run       Compile and run the lesson example in terminal"
+    echo "  learn <1-10> --practice  Write starter file lesson<N>.c in current directory"
+    echo "  learn --list             List all 10 lessons"
+    echo "  learn -h | --help        Show this help guide"
+    exit 0
+}
+
+list_lessons() {
+    echo "============================================================"
+    echo "ByteC 10-Lesson C Curriculum"
+    echo "============================================================"
+    echo "  Lesson 1  : Hello World"
+    echo "  Lesson 2  : Variables & printf"
+    echo "  Lesson 3  : User Input with scanf & Ampersand"
+    echo "  Lesson 4  : If-Else Decisions"
+    echo "  Lesson 5  : Loops"
+    echo "  Lesson 6  : Arrays"
+    echo "  Lesson 7  : Strings"
+    echo "  Lesson 8  : Pointers"
+    echo "  Lesson 9  : Structs"
+    echo "  Lesson 10 : Dynamic Memory"
+    echo "============================================================"
+}
+
+emit_lesson_code() {
+    switch_num="$1"
+    case "$switch_num" in
+        1)
+            cat << 'EOF'
+#include <stdio.h>
+
+int main(void)
+{
+    printf("Hello, World.\n");
+    return 0;
+}
+EOF
+            ;;
+        2)
+            cat << 'EOF'
+#include <stdio.h>
+
+int main(void)
+{
+    int age = 19;
+    double gpa = 8.75;
+    char grade = 'A';
+
+    printf("Age: %d | GPA: %.2f | Grade: %c\n", age, gpa, grade);
+    return 0;
+}
+EOF
+            ;;
+        3)
+            cat << 'EOF'
+#include <stdio.h>
+
+int main(void)
+{
+    int a = 0;
+    int b = 0;
+
+    printf("Enter two integers: ");
+    if (scanf("%d %d", &a, &b) == 2)
+    {
+        printf("Sum = %d\n", a + b);
+    }
+    return 0;
+}
+EOF
+            ;;
+        4)
+            cat << 'EOF'
+#include <stdio.h>
+
+int main(void)
+{
+    int marks = 78;
+
+    if (marks >= 75)
+    {
+        printf("Result: Distinction (%d)\n", marks);
+    }
+    else if (marks >= 40)
+    {
+        printf("Result: Pass (%d)\n", marks);
+    }
+    else
+    {
+        printf("Result: Needs Improvement (%d)\n", marks);
+    }
+    return 0;
+}
+EOF
+            ;;
+        5)
+            cat << 'EOF'
+#include <stdio.h>
+
+int main(void)
+{
+    int sum = 0;
+
+    for (int i = 1; i <= 5; i++)
+    {
+        sum += i;
+        printf("Step %d -> running sum = %d\n", i, sum);
+    }
+    return 0;
+}
+EOF
+            ;;
+        6)
+            cat << 'EOF'
+#include <stdio.h>
+
+int main(void)
+{
+    int scores[5] = {12, 25, 18, 30, 15};
+    int max = scores[0];
+
+    for (int i = 1; i < 5; i++)
+    {
+        if (scores[i] > max)
+        {
+            max = scores[i];
+        }
+    }
+    printf("Maximum score = %d\n", max);
+    return 0;
+}
+EOF
+            ;;
+        7)
+            cat << 'EOF'
+#include <stdio.h>
+#include <string.h>
+
+int main(void)
+{
+    char course[32] = "Computer Science";
+    size_t len = strlen(course);
+
+    printf("Course: %s (length: %zu)\n", course, len);
+    return 0;
+}
+EOF
+            ;;
+        8)
+            cat << 'EOF'
+#include <stdio.h>
+
+void swap_values(int *x, int *y)
+{
+    int temp = *x;
+    *x = *y;
+    *y = temp;
+}
+
+int main(void)
+{
+    int left = 10;
+    int right = 20;
+
+    swap_values(&left, &right);
+    printf("After swap: left = %d, right = %d\n", left, right);
+    return 0;
+}
+EOF
+            ;;
+        9)
+            cat << 'EOF'
+#include <stdio.h>
+
+struct Student
+{
+    int roll;
+    char name[32];
+    double cgpa;
+};
+
+int main(void)
+{
+    struct Student s1 = {101, "Aarav", 9.10};
+
+    printf("Roll: %d | Name: %s | CGPA: %.2f\n", s1.roll, s1.name, s1.cgpa);
+    return 0;
+}
+EOF
+            ;;
+        10)
+            cat << 'EOF'
+#include <stdio.h>
+#include <stdlib.h>
+
+int main(void)
+{
+    int n = 4;
+    int *arr = malloc((size_t)n * sizeof(int));
+    if (arr == NULL)
+    {
+        return 1;
+    }
+
+    for (int i = 0; i < n; i++)
+    {
+        arr[i] = (i + 1) * 10;
+        printf("arr[%d] = %d\n", i, arr[i]);
+    }
+
+    free(arr);
+    return 0;
+}
+EOF
+            ;;
+    esac
+}
+
+show_lesson_notes() {
+    num="$1"
+    echo "============================================================"
+    case "$num" in
+        1)
+            echo "Lesson 1: Hello World"
+            echo "------------------------------------------------------------"
+            echo "Concept:"
+            echo "  - #include <stdio.h> imports standard input/output functions."
+            echo "  - int main(void) is the starting point of every C program."
+            printf '%s\n' "  - printf() prints text to the terminal; \n moves to a new line."
+            echo "  - return 0; tells the operating system the program succeeded."
+            echo ""
+            echo "Challenge:"
+            echo "  Modify the program to print your name and college department on two lines."
+            ;;
+        2)
+            echo "Lesson 2: Variables & printf"
+            echo "------------------------------------------------------------"
+            echo "Concept:"
+            echo "  - int stores whole numbers (%d)."
+            echo "  - double stores floating-point decimals (%f or %.2f)."
+            echo "  - char stores a single character in single quotes (%c)."
+            echo ""
+            echo "Challenge:"
+            echo "  Create two int variables width and height, and print their area."
+            ;;
+        3)
+            echo "Lesson 3: User Input with scanf & Ampersand"
+            echo "------------------------------------------------------------"
+            echo "Concept:"
+            echo "  - scanf(\"%d\", &x) reads an integer from keyboard into variable x."
+            echo "  - The ampersand (&) gives scanf the memory address of x."
+            echo "  - Omitting & on numeric variables causes a segmentation fault."
+            echo ""
+            echo "Challenge:"
+            echo "  Read three integers from the user and print their average."
+            ;;
+        4)
+            echo "Lesson 4: If-Else Decisions"
+            echo "------------------------------------------------------------"
+            echo "Concept:"
+            echo "  - Use == to compare equality (single = assigns a value)."
+            echo "  - Combine conditions with && (AND) and || (OR)."
+            echo ""
+            echo "Challenge:"
+            echo "  Write an if-else check that prints whether an integer is even or odd."
+            ;;
+        5)
+            echo "Lesson 5: Loops"
+            echo "------------------------------------------------------------"
+            echo "Concept:"
+            echo "  - A for loop has three parts: initialization, condition, and step."
+            echo "  - Ensure the loop condition reaches false so the loop terminates."
+            echo ""
+            echo "Challenge:"
+            echo "  Print the multiplication table of 7 from 7 x 1 to 7 x 10."
+            ;;
+        6)
+            echo "Lesson 6: Arrays"
+            echo "------------------------------------------------------------"
+            echo "Concept:"
+            echo "  - An array of size N uses 0-based indices from 0 to N - 1."
+            echo "  - Accessing index N reads out-of-bounds stack memory."
+            echo ""
+            echo "Challenge:"
+            echo "  Compute the sum of all 5 elements in the scores array."
+            ;;
+        7)
+            echo "Lesson 7: Strings"
+            echo "------------------------------------------------------------"
+            echo "Concept:"
+            printf '%s\n' "  - A C string is a char array ending with a null byte ('\0')."
+            echo "  - Use fgets(buf, sizeof(buf), stdin) to read strings with spaces."
+            echo "  - Include <string.h> for strlen(), strcpy(), and strcmp()."
+            echo ""
+            echo "Challenge:"
+            echo "  Count the number of vowels in the course string."
+            ;;
+        8)
+            echo "Lesson 8: Pointers"
+            echo "------------------------------------------------------------"
+            echo "Concept:"
+            echo "  - A pointer holds the memory address of another variable."
+            echo "  - &var gets the address; *ptr reads or writes the value at that address."
+            echo ""
+            echo "Challenge:"
+            echo "  Write a function void triple(int *n) that multiplies *n by 3 in place."
+            ;;
+        9)
+            echo "Lesson 9: Structs"
+            echo "------------------------------------------------------------"
+            echo "Concept:"
+            echo "  - struct groups related fields of different types under one record."
+            echo "  - Access fields with the dot operator (s1.roll) or arrow (ptr->roll)."
+            echo ""
+            echo "Challenge:"
+            echo "  Create an array of 3 struct Student records and print the topper."
+            ;;
+        10)
+            echo "Lesson 10: Dynamic Memory"
+            echo "------------------------------------------------------------"
+            echo "Concept:"
+            echo "  - malloc(bytes) allocates heap memory at runtime."
+            echo "  - Check if malloc returned NULL before using the pointer."
+            echo "  - Call free(ptr) when finished so memory does not leak."
+            echo ""
+            echo "Challenge:"
+            echo "  Allocate an array of N integers, fill it with squares, print, and free."
+            ;;
+        *)
+            echo "Error: Lesson number must be between 1 and 10." >&2
+            return 1
+            ;;
+    esac
+    echo ""
+    echo "Example Code:"
+    echo "------------------------------------------------------------"
+    emit_lesson_code "$num" | awk '{printf "  %2d | %s\n", NR, $0}'
+    echo "============================================================"
+}
+
+run_lesson_example() {
+    num="$1"
+    TMP_DIR="${TMPDIR:-/tmp}"
+    [ ! -d "$TMP_DIR" ] && mkdir -p "$TMP_DIR" 2>/dev/null
+    L_SRC="$TMP_DIR/bytec_lesson_${num}_$$.c"
+    L_BIN="$TMP_DIR/bytec_lesson_${num}_$$"
+
+    emit_lesson_code "$num" > "$L_SRC"
+    clang -g -O0 -Wall "$L_SRC" -o "$L_BIN" -lm 2>/dev/null
+    if [ $? -ne 0 ]; then
+        echo "Error: Failed to compile lesson $num example." >&2
+        rm -f "$L_SRC" "$L_BIN"
+        return 1
+    fi
+
+    echo "Running Lesson $num Example:"
+    echo "------------------------------------------------------------"
+    if [ "$num" = "3" ]; then
+        echo "[Feeding sample input: 14 28]"
+        printf "14 28\n" | "$L_BIN"
+    else
+        "$L_BIN"
+    fi
+    echo "------------------------------------------------------------"
+    rm -f "$L_SRC" "$L_BIN"
+}
+
+save_practice_file() {
+    num="$1"
+    OUT_FILE="lesson${num}.c"
+    emit_lesson_code "$num" > "$OUT_FILE"
+    mkdir -p "$HOME/.bytec" 2>/dev/null
+    printf "%s\n" "$OUT_FILE" > "$HOME/.bytec/.last_file" 2>/dev/null
+    echo "Created starter file '$OUT_FILE' in current directory."
+    echo "Next steps: edit '$OUT_FILE', then run 'check $OUT_FILE' or 'crun $OUT_FILE'."
+}
+
+LESSON_NUM=""
+ACTION="view"
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -h|--help)
+            show_help
+            ;;
+        -l|--list)
+            list_lessons
+            exit 0
+            ;;
+        -r|--run)
+            ACTION="run"
+            ;;
+        -p|--practice)
+            ACTION="practice"
+            ;;
+        [1-9]|10)
+            LESSON_NUM="$1"
+            ;;
+        *)
+            echo "Error: Unknown argument '$1'. Choose lesson 1-10 or --help." >&2
+            exit 1
+            ;;
+    esac
+    shift
+done
+
+if [ -n "$LESSON_NUM" ]; then
+    show_lesson_notes "$LESSON_NUM" || exit 1
+    if [ "$ACTION" = "run" ]; then
+        run_lesson_example "$LESSON_NUM"
+    elif [ "$ACTION" = "practice" ]; then
+        save_practice_file "$LESSON_NUM"
+    fi
+    exit 0
+fi
+
+# Interactive menu when no lesson number is passed
+list_lessons
+if [ ! -t 0 ]; then
+    echo "Tip: Run 'learn <1-10>' to view a lesson or 'learn <1-10> --run' to execute it."
+    exit 0
+fi
+
+printf "Select a lesson (1-10) or q to quit: "
+read -r CHOICE
+case "$CHOICE" in
+    [1-9]|10)
+        show_lesson_notes "$CHOICE"
+        printf "\nAction: [r]un example, [p]ractice file, or [q]uit [r]: "
+        read -r SUB_ACT
+        case "${SUB_ACT:-r}" in
+            r|R)
+                run_lesson_example "$CHOICE"
+                ;;
+            p|P)
+                save_practice_file "$CHOICE"
+                ;;
+            *)
+                ;;
+        esac
+        ;;
+    *)
+        exit 0
+        ;;
+esac
+exit 0

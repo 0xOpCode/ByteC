@@ -3,26 +3,28 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ByteC Documentation: Pocket C/C++ IDE for Android</title>
-  <meta name="description" content="1-click C/C++ development environment for Android Termux. Zero proot distro required. Complete beginner guide for college students.">
+  <title>ByteC v2.0 Guide: Pocket C &amp; C++ Studio for Android Termux</title>
+  <meta name="description" content="Complete beginner guide to C and C++ programming on Android Termux with ByteC v2.0. Offline error tutor, 5s loop guard, PDF/DOC lab reports, and 18 DSA templates.">
+  <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <!-- Top Navigation Bar -->
   <header class="top-header">
-    <div style="display: flex; align-items: center; gap: 1rem;">
-      <button class="menu-toggle" aria-label="Toggle navigation menu">☰</button>
+    <div class="header-left">
+      <button class="menu-toggle" aria-label="Toggle navigation menu">&#9776;</button>
       <a href="#" class="brand">
-        <span>🛡️ ByteC</span>
-        <span class="brand-badge">v1.1.0</span>
+        <img src="assets/logo.svg" alt="ByteC Logo" class="brand-logo">
+        <span>ByteC</span>
+        <span class="brand-badge">v2.0.0</span>
       </a>
     </div>
     <div class="header-links">
-      <a href="#quickstart" class="nav-link">Quickstart</a>
-      <a href="#termux-setup" class="nav-link">First Time Guide</a>
-      <a href="#cli-tools" class="nav-link">Commands</a>
-      <a href="#faq" class="nav-link">Troubleshooting</a>
+      <a href="#zero-to-one" class="nav-link">Zero-to-One</a>
+      <a href="#termux-setup" class="nav-link">1-Click Setup</a>
+      <a href="#magic-words" class="nav-link">6 Magic Words</a>
+      <a href="#templates" class="nav-link">18 Templates</a>
+      <a href="#resources" class="nav-link">Learn C/C++</a>
       <a href="https://github.com/0xOpCode/ByteC" target="_blank" rel="noopener" class="btn-github">
         <svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">
           <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
@@ -33,138 +35,110 @@
   </header>
 
   <div class="docs-layout">
-    <!-- Sidebar Navigation -->
     <aside class="sidebar">
       <div class="search-box">
-        <input type="text" id="docs-search" placeholder="Search documentation...">
+        <input type="text" id="docs-search" placeholder="Search guide sections...">
       </div>
 
       <div class="nav-group">
-        <div class="nav-title">Getting Started</div>
+        <div class="nav-title">Start Here</div>
         <ul class="nav-items">
-          <li><a href="#quickstart" class="active">1-Click Quickstart</a></li>
-          <li><a href="#why-bytec">Why ByteC?</a></li>
-          <li><a href="#termux-setup">First Time Termux Setup</a></li>
+          <li><a href="#hero" class="active">Welcome to ByteC v2.0</a></li>
+          <li><a href="#zero-to-one">Zero-to-One: Terminal &amp; C</a></li>
+          <li><a href="#termux-setup">1-Click Termux Setup</a></li>
         </ul>
       </div>
 
       <div class="nav-group">
-        <div class="nav-title">Coding Workflow</div>
+        <div class="nav-title">Core Workflow</div>
         <ul class="nav-items">
-          <li><a href="#create-code">Creating Files (cnew)</a></li>
-          <li><a href="#run-code">Compile & Run (crun)</a></li>
-          <li><a href="#nvim-guide">Neovim Survival Guide</a></li>
-          <li><a href="#touch-keys">Touch Navigation Bar</a></li>
+          <li><a href="#magic-words">The 6 Magic Words</a></li>
+          <li><a href="#grade-savers">How explain, check &amp; submit Work</a></li>
+          <li><a href="#nvim-survival">Surviving Neovim</a></li>
+          <li><a href="#touch-bar">2-Row C Symbol Bar</a></li>
         </ul>
       </div>
 
       <div class="nav-group">
-        <div class="nav-title">Tools & Features</div>
+        <div class="nav-title">Labs &amp; Survival</div>
         <ul class="nav-items">
-          <li><a href="#templates">DSA & Lab Templates</a></li>
-          <li><a href="#multi-file">Multi-File Projects (cbuild)</a></li>
-          <li><a href="#format">Formatting (cformat)</a></li>
-          <li><a href="#debug">Debugging (cdebug)</a></li>
-          <li><a href="#test">Automated Tests (ctest)</a></li>
-          <li><a href="#manager">ByteC CLI Manager</a></li>
+          <li><a href="#c-traps">The 3 Classic C Traps</a></li>
+          <li><a href="#templates">18 Lab &amp; DSA Templates</a></li>
+          <li><a href="#classic-cli">Classic CLI &amp; Studio Manager</a></li>
         </ul>
       </div>
 
       <div class="nav-group">
-        <div class="nav-title">Help & Support</div>
+        <div class="nav-title">Roadmaps &amp; Help</div>
         <ul class="nav-items">
-          <li><a href="#faq">Common Doubts & FAQ</a></li>
-          <li><a href="#uninstall">Uninstalling</a></li>
+          <li><a href="#resources">Free Learning Roadmaps</a></li>
+          <li><a href="#faq">Troubleshooting &amp; FAQ</a></li>
         </ul>
       </div>
     </aside>
 
-    <!-- Main Content Area -->
     <main class="content">
-      
-      <!-- Section: Quickstart -->
-      <section id="quickstart">
-        <h1>ByteC Documentation</h1>
-        <p>ByteC configures a C and C++ programming station directly on Android using native Termux. It installs in one command and takes ~120MB of storage. It requires no proot Linux container.</p>
+
+      <section id="hero">
+        <div class="hero-banner-wrap">
+          <img src="assets/banner.svg" alt="ByteC v2.0 Kawaii Studio Banner" class="hero-banner">
+        </div>
+        <h1>ByteC v2.0: The Pocket C &amp; C++ Survival Guide</h1>
+        <p>Welcome. If your college C programming course started this week, you do not own a laptop, and the black Termux screen looks like a 1980s hacker movie, you are in the right place. ByteC turns your Android phone into a 120MB C and C++ studio with plain-English commands, an offline error tutor, and one-command PDF/DOC lab reports.</p>
 
         <div class="callout callout-info">
-          <p><strong>First time opening Termux?</strong> Follow the <a href="#termux-setup" style="color: var(--accent-cyan);">First Time Termux Setup</a> below before running the command.</p>
-        </div>
-
-        <h2>1-Click Installation</h2>
-        <p>Open Termux and paste this command:</p>
-
-        <div class="code-wrapper">
-          <div class="code-header">
-            <span>bash</span>
-            <button class="copy-btn">Copy</button>
-          </div>
-          <pre><code>curl -sL https://raw.githubusercontent.com/0xOpCode/ByteC/main/install.sh | bash</code></pre>
-        </div>
-
-        <p>When the installation completes, reload your shell:</p>
-
-        <div class="code-wrapper">
-          <div class="code-header">
-            <span>bash</span>
-            <button class="copy-btn">Copy</button>
-          </div>
-          <pre><code>source ~/.bashrc</code></pre>
+          <p><strong>Never touched Linux before?</strong> Read <a href="#zero-to-one" style="color: var(--accent-cyan);">Zero-to-One: What Even Is a Terminal?</a> first. It takes two minutes and saves hours of confusion.</p>
         </div>
       </section>
 
-      <!-- Section: Why ByteC -->
-      <section id="why-bytec">
-        <h2>Why ByteC Exists</h2>
-        <p>College C programming courses assume every student owns a laptop. Many students code on smartphones. Running full Linux distributions like Ubuntu via proot consumes 3GB to 5GB of storage, runs sluggishly on budget chips, and burns battery quickly.</p>
+      <section id="zero-to-one">
+        <h2>Zero-to-One: What Even Is a Terminal?</h2>
+        <p>On a phone, you tap icons to open apps. A <strong>terminal</strong> (also called the command line or shell) skips the icons and lets you send text messages to the operating system. You type a command, press Enter, and the phone runs it and prints the answer back.</p>
+
+        <h3>Why Can't My Phone Run C Code Right Away?</h3>
+        <p>When you write a C program, you write human-readable text like <code>printf("Hello\n");</code> inside a file named <code>lab1.c</code>. Your phone's processor (the CPU) does not speak English or C. The CPU understands raw binary numbers (machine code) and nothing else.</p>
+        <p>To bridge that gap, you use a <strong>compiler</strong> (ByteC uses <strong>Clang</strong>, wrapped so <code>gcc</code> and <code>g++</code> work too). The compiler reads your <code>lab1.c</code> text file, checks whether you forgot any semicolons, and translates the whole thing into a binary executable that the CPU can run.</p>
 
         <div class="table-wrapper">
           <table>
             <thead>
               <tr>
-                <th>College Problem</th>
-                <th>Standard Fix</th>
-                <th>ByteC Solution</th>
+                <th>Term</th>
+                <th>What It Means in Plain English</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td>No laptop / Low storage</td>
-                <td>Proot Ubuntu (needs 3-5GB)</td>
-                <td><strong>Native Termux (~120MB)</strong></td>
+                <td><strong>Source File (<code>lab1.c</code>)</strong></td>
+                <td>The recipe you write in C or C++ text.</td>
               </tr>
               <tr>
-                <td><code>gcc: command not found</code></td>
-                <td>Manual clang flag setup</td>
-                <td><strong>Smart gcc & g++ wrappers</strong></td>
+                <td><strong>Compiler (<code>clang</code> / <code>gcc</code>)</strong></td>
+                <td>The strict translator that checks your grammar and converts C text into CPU machine code.</td>
               </tr>
               <tr>
-                <td>Phone keyboard lacks <code>{ } ; "</code></td>
-                <td>Switching keyboard layouts</td>
-                <td><strong>Ergonomic 2-row touch key bar</strong></td>
+                <td><strong>Binary / Executable</strong></td>
+                <td>The finished program produced by the compiler.</td>
               </tr>
               <tr>
-                <td>Code lost on Termux uninstall</td>
-                <td>Lost progress</td>
-                <td><strong>Auto-linked to /sdcard/C_Projects</strong></td>
+                <td><strong>Standard Input (<code>stdin</code>)</strong></td>
+                <td>The stream of characters you type on your keyboard when <code>scanf</code> waits for input.</td>
               </tr>
               <tr>
-                <td>Lab manual code syntax</td>
-                <td>Copying boilerplate manually</td>
-                <td><strong>10 built-in university DSA templates</strong></td>
+                <td><strong>Standard Output (<code>stdout</code>)</strong></td>
+                <td>The text your program prints back to the terminal screen via <code>printf</code>.</td>
               </tr>
             </tbody>
           </table>
         </div>
       </section>
 
-      <!-- Section: First Time Termux Setup -->
       <section id="termux-setup">
-        <h2>First Time Termux Setup</h2>
-        <p>If you have never used Termux before, follow these steps in order.</p>
+        <h2>1-Click Termux Setup</h2>
+        <p>Follow these four steps once. The entire installation takes about two minutes and uses 120MB of storage instead of a 5GB Ubuntu container.</p>
 
         <div class="callout callout-danger">
-          <p><strong>Do not install Termux from Google Play Store.</strong> The Play Store build stopped receiving updates in 2020 due to Google SDK policy changes. Running <code>pkg install</code> on the Play Store build will fail with repository errors. Always install Termux from F-Droid or GitHub Releases.</p>
+          <p><strong>Why F-Droid Instead of Google Play Store:</strong> Do not install Termux from the Google Play Store. The Play Store build is frozen on an obsolete SDK policy and its package servers are dead. Always download Termux from <a href="https://f-droid.org/packages/com.termux/" target="_blank" rel="noopener" style="color: var(--accent-cyan);">F-Droid</a> or <a href="https://github.com/termux/termux-app/releases" target="_blank" rel="noopener" style="color: var(--accent-cyan);">GitHub Releases</a>.</p>
         </div>
 
         <div class="step-card">
@@ -172,15 +146,15 @@
             <span class="step-num">1</span>
             <span class="step-title">Install Termux from F-Droid</span>
           </div>
-          <p>Download the official APK from F-Droid: <a href="https://f-droid.org/packages/com.termux/" target="_blank" rel="noopener" style="color: var(--accent-cyan);">f-droid.org/packages/com.termux</a>. Install the APK and launch Termux.</p>
+          <p>Download and install the official Termux APK from <a href="https://f-droid.org/packages/com.termux/" target="_blank" rel="noopener" style="color: var(--accent-cyan);">f-droid.org/packages/com.termux</a>, then open the app.</p>
         </div>
 
         <div class="step-card">
           <div class="step-header">
             <span class="step-num">2</span>
-            <span class="step-title">Grant Storage Access</span>
+            <span class="step-title">Grant Android Storage Permission</span>
           </div>
-          <p>Run this command inside Termux:</p>
+          <p>Type this command and press Enter:</p>
           <div class="code-wrapper">
             <div class="code-header">
               <span>bash</span>
@@ -188,15 +162,15 @@
             </div>
             <pre><code>termux-setup-storage</code></pre>
           </div>
-          <p>Android will show a popup asking for permission. Tap <strong>Allow</strong>. This lets ByteC save your programs to your phone's main storage so your files remain safe even if you uninstall Termux.</p>
+          <p>Tap <strong>Allow</strong> on the Android popup. This links <code>~/c_projects</code> to <code>/sdcard/C_Projects</code> so your code stays safe in phone storage even if you uninstall Termux, and lets <code>submit</code> save PDF/DOC lab reports in your <code>Downloads/ByteC</code> folder.</p>
         </div>
 
         <div class="step-card">
           <div class="step-header">
             <span class="step-num">3</span>
-            <span class="step-title">Run the 1-Click Installer</span>
+            <span class="step-title">Run the 1-Click ByteC Installer</span>
           </div>
-          <p>Copy the installer command and paste it into Termux:</p>
+          <p>Copy this line, long-press anywhere on the black Termux screen, tap <strong>PASTE</strong>, and press Enter:</p>
           <div class="code-wrapper">
             <div class="code-header">
               <span>bash</span>
@@ -204,452 +178,644 @@
             </div>
             <pre><code>curl -sL https://raw.githubusercontent.com/0xOpCode/ByteC/main/install.sh | bash</code></pre>
           </div>
-          <p>To paste in Termux: <strong>long press anywhere on the black terminal screen</strong> and tap <strong>PASTE</strong>. Then press Enter on your keyboard.</p>
         </div>
 
         <div class="step-card">
           <div class="step-header">
             <span class="step-num">4</span>
-            <span class="step-title">Reload Shell</span>
+            <span class="step-title">Reload Your Shell &amp; Open Studio</span>
           </div>
-          <p>When the installer completes, type:</p>
+          <p>Activate the new commands and touch bar:</p>
           <div class="code-wrapper">
             <div class="code-header">
               <span>bash</span>
               <button class="copy-btn">Copy</button>
             </div>
-            <pre><code>source ~/.bashrc</code></pre>
+            <pre><code>source ~/.bashrc
+bytec</code></pre>
           </div>
-          <p>You will see the ByteC banner and a 2-row touch toolbar with arrows and programming symbols above your keyboard.</p>
         </div>
       </section>
 
-      <!-- Section: Creating Files -->
-      <section id="create-code">
-        <h2>Creating Programs (<code>cnew</code>)</h2>
-        <p>The <code>cnew</code> command creates a clean C or C++ file with standard headers and opens it directly in Neovim.</p>
+      <section id="magic-words">
+        <h2>The 6 Magic Words (<code>code</code>, <code>run</code>, <code>explain</code>, <code>check</code>, <code>fix</code>, <code>submit</code>)</h2>
+        <p>Traditional Linux makes you memorize flags like <code>gcc -Wall -Wextra lab1.c -o lab1 -lm &amp;&amp; ./lab1</code>. ByteC v2.0 gives you six single-word commands. Even better: ByteC remembers the last file you edited in <code>~/.bytec/.last_file</code>, so you can run these commands without retyping the filename.</p>
 
-        <div class="code-wrapper">
-          <div class="code-header">
-            <span>bash</span>
-            <button class="copy-btn">Copy</button>
+        <div class="magic-grid">
+          <div class="magic-card">
+            <span class="magic-word">1. code</span>
+            <p>Creates a new C or C++ file (or opens an existing one) in Neovim. Run it with no arguments to pick from 18 lab templates.</p>
+            <div class="code-wrapper">
+              <div class="code-header"><span>bash</span><button class="copy-btn">Copy</button></div>
+              <pre><code>code lab1.c</code></pre>
+            </div>
           </div>
-          <pre><code>cnew lab1.c
-cnew test.cpp</code></pre>
-        </div>
 
-        <p>If you run <code>cnew</code> without arguments, it asks for a filename so you do not need to retype the command on mobile touch keyboards.</p>
-
-        <h3>Using Built-In Lab Templates</h3>
-        <p>College courses follow standard data structures assignments. You can start with full, tested implementations using the <code>-t</code> flag:</p>
-
-        <div class="code-wrapper">
-          <div class="code-header">
-            <span>bash</span>
-            <button class="copy-btn">Copy</button>
+          <div class="magic-card">
+            <span class="magic-word">2. run</span>
+            <p>Compiles and executes your program in one step. If compilation fails or crashes, it calls <code>explain</code> for you.</p>
+            <div class="code-wrapper">
+              <div class="code-header"><span>bash</span><button class="copy-btn">Copy</button></div>
+              <pre><code>run lab1.c</code></pre>
+            </div>
           </div>
-          <pre><code>cnew lab2.c -t linkedlist
-cnew lab3.c -t stack
-cnew lab4.c -t sort</code></pre>
+
+          <div class="magic-card">
+            <span class="magic-word">3. explain</span>
+            <p>Your offline C tutor. Translates compiler errors and <code>Segmentation fault</code> crashes into plain English with before/after fixes.</p>
+            <div class="code-wrapper">
+              <div class="code-header"><span>bash</span><button class="copy-btn">Copy</button></div>
+              <pre><code>explain lab1.c</code></pre>
+            </div>
+          </div>
+
+          <div class="magic-card">
+            <span class="magic-word">4. check</span>
+            <p>Pre-submission verifier. Scans for classic C bugs, kills infinite loops after 5 seconds, and runs multi-case tests.</p>
+            <div class="code-wrapper">
+              <div class="code-header"><span>bash</span><button class="copy-btn">Copy</button></div>
+              <pre><code>check lab1.c</code></pre>
+            </div>
+          </div>
+
+          <div class="magic-card">
+            <span class="magic-word">5. fix</span>
+            <p>Formats messy indentation into clean college Allman brace style and checks syntax in one step.</p>
+            <div class="code-wrapper">
+              <div class="code-header"><span>bash</span><button class="copy-btn">Copy</button></div>
+              <pre><code>fix lab1.c</code></pre>
+            </div>
+          </div>
+
+          <div class="magic-card">
+            <span class="magic-word">6. submit</span>
+            <p>Runs your program, captures inputs and outputs, and saves formatted <code>.doc</code> and <code>.pdf</code> lab reports in <code>Downloads/ByteC</code>.</p>
+            <div class="code-wrapper">
+              <div class="code-header"><span>bash</span><button class="copy-btn">Copy</button></div>
+              <pre><code>submit lab1.c</code></pre>
+            </div>
+          </div>
         </div>
       </section>
 
-      <!-- Section: Run Code -->
-      <section id="run-code">
-        <h2>Compiling & Running (<code>crun</code>)</h2>
-        <p>In standard Linux, running a C program requires two commands: <code>clang file.c -o file</code> followed by <code>./file</code>. ByteC combines this into one command and measures compile and runtime in milliseconds.</p>
+      <section id="grade-savers">
+        <h2>How <code>explain</code>, <code>check</code>, and <code>submit</code> Save Your Grades</h2>
+
+        <h3>1. <code>explain</code>: The Offline Compiler &amp; Crash Translator</h3>
+        <p>Compilers were written by systems engineers for other systems engineers. When you forget a semicolon on line 9, Clang points at line 10 and complains about something unrelated. When you forget <code>&amp;</code> in <code>scanf</code>, your program dies with <code>Segmentation fault</code> and tells you nothing.</p>
+        <p><code>explain</code> runs 100% offline across three stages:</p>
+        <ul>
+          <li><strong>Stage 1 (Static Capture):</strong> Runs Clang with strict diagnostics (<code>-Wall -Wextra -Wformat -Wuninitialized</code>) and extracts your source lines.</li>
+          <li><strong>Stage 2 (25+ Student Error Rules):</strong> Matches mistakes like missing <code>;</code> on the previous line, missing <code>&amp;</code> in <code>scanf</code>, <code>=</code> instead of <code>==</code> in <code>if</code>, uninitialized stack garbage, missing headers (<code>&lt;stdio.h&gt;</code>, <code>&lt;stdlib.h&gt;</code>, <code>&lt;math.h&gt;</code>, <code>&lt;string.h&gt;</code>), and removed <code>gets()</code> calls.</li>
+          <li><strong>Stage 3 (Runtime Crash Forensics):</strong> If your code compiles but crashes while running, <code>explain</code> decodes the crash signal (<code>SIGSEGV</code> Exit 139 for bad memory access, <code>SIGFPE</code> Exit 136 for division by zero, <code>SIGABRT</code> Exit 134 for double free or stack overflow) and shows the crashing line and local variable state.</li>
+        </ul>
+
+        <div class="code-wrapper">
+          <div class="code-header">
+            <span>Example: explain output on missing &amp; in scanf</span>
+          </div>
+          <pre><code>[EXPLAIN] Issue found in lab1.c (Line 8, Column 18)
+  8 |     scanf("%d", age);
+    |                 ^~~
+What happened:
+  scanf needs the memory address of 'age' so it knows where to store the number.
+  Passing 'age' without '&amp;' sends its uninitialized value as a memory address,
+  which triggers a Segmentation Fault crash.
+
+How to fix (Before vs After):
+  - Before: scanf("%d", age);
+  + After:  scanf("%d", &amp;age);</code></pre>
+        </div>
+
+        <h3>2. <code>check</code>: 4-Layer Verifier &amp; 5-Second Infinite Loop Guard</h3>
+        <p>Every C student writes a <code>while (i &lt; 10)</code> loop where <code>i</code> never increments. In a normal terminal, the program freezes forever until you mash <code>Ctrl+C</code>. When you run <code>check lab1.c</code>, ByteC runs four verification layers:</p>
+        <ol>
+          <li><strong>Layer 1 (Static Bug Scan):</strong> Flags <code>scanf</code> without <code>&amp;</code>, <code>fflush(stdin)</code>, <code>void main()</code>, <code>gets()</code>, uninitialized variables, and <code>malloc()</code> without a matching <code>free()</code>.</li>
+          <li><strong>Layer 2 (Memory &amp; Bounds Protection):</strong> Compiles with stack smash protection and bounds checks.</li>
+          <li><strong>Layer 3 (5-Second Watchdog Timer):</strong> Runs your binary under a 5-second timeout. If your code gets stuck in an infinite loop, <code>check</code> halts the process after 5 seconds and tells you to inspect your loop counter.</li>
+          <li><strong>Layer 4 (Multi-Case Test Suite):</strong> Pass a test file with multiple <code>--- INPUT ---</code> and <code>--- EXPECTED ---</code> blocks to grade your program before your professor does.</li>
+        </ol>
 
         <div class="code-wrapper">
           <div class="code-header">
             <span>bash</span>
             <button class="copy-btn">Copy</button>
           </div>
-          <pre><code>crun lab1.c</code></pre>
+          <pre><code>check lab1.c
+check lab1.c tests.txt</code></pre>
         </div>
 
-        <h3>Automating Program Input (scanf)</h3>
-        <p>Typing inputs every time you test a program gets slow. Create a text file with your test inputs (for example <code>input.txt</code>) and pass it to <code>crun</code> with <code>-i</code>:</p>
+        <h3>3. <code>submit</code>: Instant <code>.doc</code> &amp; <code>.pdf</code> Lab Reports in <code>Downloads/ByteC</code></h3>
+        <p>Formatting college practical records on a phone is painful. Running <code>submit lab1.c</code> automates the entire lab record workflow offline:</p>
+        <ol>
+          <li><strong>Storage Permission Guard:</strong> Checks if <code>/sdcard/Download/ByteC</code> is writable. If Termux does not have storage permission yet, <code>submit</code> launches <code>termux-setup-storage</code>, waits for you to tap <strong>Allow</strong>, and creates the folder.</li>
+          <li><strong>One-Time Student Profile:</strong> Prompts once for your Full Name, Roll Number, and Batch, saving them in <code>~/.bytec/student_profile.conf</code> for all future practicals.</li>
+          <li><strong>Live Input-Echo Transcript:</strong> Runs your program and echoes every input value next to its prompt (for example, <code>Enter number: 29</code>) so the output box in your report reads like a real terminal session.</li>
+          <li><strong>Zero-Dependency <code>.doc</code> + <code>.pdf</code> Output:</strong> Writes both <code>lab1_LabReport.doc</code> (Word/WPS/Google Docs compatible RTF 1.5 with bordered code boxes) and <code>lab1_LabReport.pdf</code> (native PDF 1.4 generated offline via POSIX <code>awk</code>) straight into <code>/sdcard/Download/ByteC/</code> and fires an Android notification.</li>
+        </ol>
 
         <div class="code-wrapper">
           <div class="code-header">
             <span>bash</span>
             <button class="copy-btn">Copy</button>
           </div>
-          <pre><code>crun lab1.c -i input.txt</code></pre>
+          <pre><code>submit lab1.c
+submit lab1.c -i input.txt</code></pre>
         </div>
-
-        <h3>Passing Command Line Arguments</h3>
-        <div class="code-wrapper">
-          <div class="code-header">
-            <span>bash</span>
-            <button class="copy-btn">Copy</button>
-          </div>
-          <pre><code>crun lab1.c 10 20 "test"</code></pre>
-        </div>
-
-        <h3>Student Error Tips</h3>
-        <p>When code fails to compile, <code>crun</code> inspects compiler output and prints tips for common mistakes, such as missing semicolons, undeclared variables, or missing header files.</p>
       </section>
 
-      <!-- Section: Neovim Guide -->
-      <section id="nvim-guide">
-        <h2>Neovim Survival Guide</h2>
-        <p>ByteC bundles a pre-configured Neovim IDE setup (<code>0xOpCode/nvim</code>). If you have never used Vim or Neovim before, learn these core rules to avoid getting stuck.</p>
+      <section id="nvim-survival">
+        <h2>Surviving Neovim (Without Rebooting Your Phone)</h2>
+        <p>There is an old computer science joke: <em>"How do you generate a random string? Put a first-year student in Vim and ask them to exit."</em></p>
+        <p>People get trapped in Vim/Neovim because it has <strong>two main modes</strong> instead of one. Once you understand the difference between <strong>Normal Mode</strong> and <strong>Insert Mode</strong>, you will never get stuck again.</p>
 
-        <div class="callout callout-warning">
-          <p><strong>Neovim uses modes:</strong> When you open a file, you are in <strong>Normal Mode</strong>. Pressing keyboard letters runs editor commands, not text insertion. Press <strong>i</strong> to enter <strong>Insert Mode</strong> and start typing code. Press <strong>Esc</strong> to return to Normal Mode.</p>
+        <div class="mode-diagram">
+          <div class="mode-card mode-normal">
+            <span class="mode-badge">Mode 1: Normal Mode (Default)</span>
+            <h3>Navigation &amp; Commands</h3>
+            <p>When Neovim opens a file, you start here. Pressing letter keys does <strong>not</strong> type text on screen; keys act as shortcuts. Press <code>i</code> whenever you want to start typing code.</p>
+            <ul>
+              <li>Press <code>i</code> to switch to Insert Mode.</li>
+              <li>Press <code>Space + r</code> to compile and run your program.</li>
+              <li>Type <code>:wq</code> and press Enter to save and exit.</li>
+            </ul>
+          </div>
+
+          <div class="mode-card mode-insert">
+            <span class="mode-badge">Mode 2: Insert Mode (Typing)</span>
+            <h3>Writing Code Like a Normal Editor</h3>
+            <p>After pressing <code>i</code>, the bottom bar says <code>INSERT</code>. Now every key on your keyboard types characters into your file, and VS Code shortcuts like <code>Ctrl+S</code>, <code>Ctrl+C</code>, <code>Ctrl+V</code>, and <code>Ctrl+Z</code> work right away.</p>
+            <ul>
+              <li>Type your C/C++ code and use the 2-row symbol bar.</li>
+              <li>Press <code>Ctrl + s</code> to save and format in Allman style.</li>
+              <li>Tap <code>ESC</code> on the touch bar to return to Normal Mode.</li>
+            </ul>
+          </div>
         </div>
 
+        <h3>Complete Neovim v2.0 VS Code Shortcut Table</h3>
         <div class="table-wrapper">
           <table>
             <thead>
               <tr>
                 <th>Action</th>
                 <th>Shortcut</th>
-                <th>What it does</th>
+                <th>Details</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td><strong>Run program</strong></td>
-                <td><code>&lt;Space&gt; + r</code></td>
-                <td>Saves, auto-formats in Allman style, compiles, and runs in full screen</td>
+                <td><strong>Compile &amp; Run</strong></td>
+                <td><code>&lt;Space&gt; + r</code> or <code>F5</code></td>
+                <td>Saves file, formats with Allman braces, compiles in <code>$TMPDIR</code>, runs code, and invokes <code>explain</code> on errors</td>
               </tr>
               <tr>
-                <td><strong>Start typing</strong></td>
+                <td><strong>Start Typing (Insert Mode)</strong></td>
                 <td><code>i</code></td>
-                <td>Switches to Insert Mode so keyboard keys type characters</td>
+                <td>Switches from Normal Mode into Insert Mode</td>
               </tr>
               <tr>
-                <td><strong>Stop typing</strong></td>
+                <td><strong>Command Mode (Normal Mode)</strong></td>
                 <td><code>ESC</code></td>
-                <td>Returns to Normal Mode</td>
+                <td>Returns from Insert/Visual Mode to Normal Mode</td>
               </tr>
               <tr>
-                <td><strong>Save file</strong></td>
+                <td><strong>Save &amp; Format</strong></td>
                 <td><code>Ctrl + s</code></td>
-                <td>Saves and formats current file</td>
+                <td>Saves file and formats braces in college Allman style</td>
               </tr>
               <tr>
-                <td><strong>Save & Quit</strong></td>
-                <td><code>:wq</code> + <code>Enter</code></td>
-                <td>Writes changes to storage and closes editor</td>
+                <td><strong>Copy / Paste / Cut</strong></td>
+                <td><code>Ctrl + c</code> / <code>Ctrl + v</code> / <code>Ctrl + x</code></td>
+                <td>Copies, pastes, or cuts selection using the Android/system clipboard</td>
               </tr>
               <tr>
-                <td><strong>Quit without saving</strong></td>
-                <td><code>:q!</code> + <code>Enter</code></td>
-                <td>Discards edits and returns to terminal</td>
+                <td><strong>Select All</strong></td>
+                <td><code>Ctrl + a</code></td>
+                <td>Highlights the entire file in Visual Mode</td>
+              </tr>
+              <tr>
+                <td><strong>Toggle Comment</strong></td>
+                <td><code>Ctrl + /</code></td>
+                <td>Comments or uncomments the current line or visual selection with <code>//</code></td>
               </tr>
               <tr>
                 <td><strong>Undo / Redo</strong></td>
                 <td><code>Ctrl + z</code> / <code>Ctrl + y</code></td>
-                <td>Undoes or redoes last edit</td>
+                <td>Undoes or redoes changes across Normal and Insert modes</td>
               </tr>
               <tr>
-                <td><strong>Terminal overlay</strong></td>
-                <td><code>Ctrl + ~</code> or <code>Ctrl + j</code></td>
-                <td>Toggles a floating shell terminal inside editor</td>
+                <td><strong>Select Word</strong></td>
+                <td><code>Ctrl + d</code></td>
+                <td>Selects word under cursor and jumps to next match</td>
               </tr>
               <tr>
-                <td><strong>File browser</strong></td>
-                <td><code>&lt;Space&gt; + e</code></td>
-                <td>Toggles sidebar file directory tree</td>
+                <td><strong>Floating Terminal</strong></td>
+                <td><code>Ctrl + j</code></td>
+                <td>Opens or hides a pop-up shell terminal inside Neovim</td>
+              </tr>
+              <tr>
+                <td><strong>File Explorer / Find File</strong></td>
+                <td><code>&lt;Space&gt; + e</code> / <code>&lt;Space&gt; + ff</code></td>
+                <td>Toggles sidebar directory tree or fuzzy file finder</td>
+              </tr>
+              <tr>
+                <td><strong>Save &amp; Quit</strong></td>
+                <td><code>ESC</code> then <code>:wq</code> + <code>Enter</code></td>
+                <td>Writes file to disk and exits to terminal</td>
+              </tr>
+              <tr>
+                <td><strong>Discard Changes &amp; Quit</strong></td>
+                <td><code>ESC</code> then <code>ZQ</code> (or <code>:q</code>)</td>
+                <td>Closes Neovim without saving edits</td>
               </tr>
             </tbody>
           </table>
         </div>
       </section>
 
-      <!-- Section: Touch Keys -->
-      <section id="touch-keys">
-        <h2>Touch Navigation Bar</h2>
-        <p>ByteC configures a custom 2-row toolbar directly above your phone's on-screen keyboard:</p>
+      <section id="touch-bar">
+        <h2>Upgraded 2-Row C Symbol Touch Bar</h2>
+        <p>Phone keyboards hide C operators across three sub-menus. ByteC configures a 2-row hardware toolbar above your keyboard with every token required for headers, pointers, format strings, and bitwise logic:</p>
 
         <div class="code-wrapper">
           <div class="code-header">
-            <span>Touch Row Layout</span>
+            <span>Termux 2-Row Extra Keys Layout</span>
           </div>
-          <pre><code>Row 1: [ ESC   | TAB  | CTRL | ALT | { | } | ( | ) ]
-Row 2: [ LEFT  | DOWN | UP   | RIGHT | " | ; | / | - ]</code></pre>
+          <pre><code>Row 1: [ ESC  | TAB  | CTRL | ALT   | { | } | ( | ) | ; | " ]
+Row 2: [ LEFT | DOWN | UP   | RIGHT | # | &lt; | &gt; | &amp; | * | = ]</code></pre>
         </div>
-
-        <p>Use the arrow keys (<code>LEFT</code>, <code>DOWN</code>, <code>UP</code>, <code>RIGHT</code>) to move your cursor without fighting phone touch selection. Tap <code>{ } ( ) ; "</code> directly without switching mobile keyboard sub-panels.</p>
+        <p>Swipe up or long-press on the touch bar keys to insert secondary brackets and operators (<code>[</code>, <code>]</code>, <code>\</code>, <code>|</code>, <code>/</code>, <code>-</code>, <code>_</code>).</p>
       </section>
 
-      <!-- Section: Templates -->
+      <section id="c-traps">
+        <h2>The 3 Classic C Traps (Read Before Lab 1)</h2>
+        <p>C gives you direct access to memory and trusts that you know what you are doing. Here are the three traps that catch every beginner in week one, and how to beat them.</p>
+
+        <div class="trap-card">
+          <div class="trap-header">
+            <span class="trap-badge">Trap 1</span>
+            <span class="trap-title">The <code>scanf</code> Ampersand (<code>&amp;</code>) Trap</span>
+          </div>
+          <p>When you call <code>printf("%d", age);</code>, C reads the <strong>value</strong> stored inside <code>age</code>. When you call <code>scanf("%d", &amp;age);</code>, <code>scanf</code> needs to put a new number <em>into</em> the variable, so it requires the <strong>house address in memory</strong> where <code>age</code> lives (<code>&amp;age</code>).</p>
+          <p>If you forget the <code>&amp;</code> and write <code>scanf("%d", age);</code>, C takes whatever random garbage number is inside <code>age</code> (say, <code>4198400</code>) and tries to write your keyboard input to memory address <code>4198400</code>. The operating system catches your program trespassing and kills it with <code>Segmentation fault</code>.</p>
+          <div class="code-wrapper">
+            <div class="code-header"><span>c</span></div>
+            <pre><code>int age;
+scanf("%d", age);   // CRASH: Sends uninitialized value as a memory address
+scanf("%d", &amp;age);  // SAFE:  Sends the memory address of 'age'
+
+char name[50];
+scanf("%49s", name); // EXCEPTION: An array name already points to its address</code></pre>
+          </div>
+        </div>
+
+        <div class="trap-card">
+          <div class="trap-header">
+            <span class="trap-badge">Trap 2</span>
+            <span class="trap-title">Assignment (<code>=</code>) vs Comparison (<code>==</code>) Inside <code>if</code></span>
+          </div>
+          <p>In math class, <code>=</code> means "are these two things equal?". In C, a single <code>=</code> means "shove the number on the right into the variable on the left". To compare two values, you need a double equals sign: <code>==</code>.</p>
+          <p>If you write <code>if (marks = 100)</code>, C overwrites <code>marks</code> with <code>100</code>, evaluates <code>100</code> as true (every non-zero number in C is true), and runs the <code>if</code> block every single time.</p>
+          <div class="code-wrapper">
+            <div class="code-header"><span>c</span></div>
+            <pre><code>if (marks = 100)    // BUG: Overwrites marks with 100, condition is always true
+{
+    printf("Full marks\n");
+}
+
+if (marks == 100)   // SAFE: Compares marks against 100 without changing it
+{
+    printf("Full marks\n");
+}</code></pre>
+          </div>
+        </div>
+
+        <div class="trap-card">
+          <div class="trap-header">
+            <span class="trap-badge">Trap 3</span>
+            <span class="trap-title">Array Indices Run From <code>0</code> to <code>n - 1</code></span>
+          </div>
+          <p>When you declare <code>int scores[5];</code>, C reserves five integer slots in a row. Because an index measures how far to step from the start of the array, the first slot is at offset <code>0</code>, and the fifth slot is at offset <code>4</code>.</p>
+          <p>There is <strong>no</strong> <code>scores[5]</code>. Writing to <code>scores[5]</code> scribbles over whatever variable sits next to the array on the stack.</p>
+          <div class="code-wrapper">
+            <div class="code-header"><span>c</span></div>
+            <pre><code>int scores[5] = {10, 20, 30, 40, 50};
+
+// BUG: Using &lt;= 5 steps onto scores[5], which is out of bounds
+for (int i = 0; i &lt;= 5; i++) { ... }
+
+// SAFE: Valid indices for size 5 are 0, 1, 2, 3, 4 (i &lt; 5)
+for (int i = 0; i &lt; 5; i++)
+{
+    printf("%d\n", scores[i]);
+}</code></pre>
+          </div>
+        </div>
+      </section>
+
       <section id="templates">
-        <h2>DSA & Lab Templates</h2>
-        <p>ByteC includes 10 university C lab templates with standard comments and interactive menu loops:</p>
+        <h2>18 Built-in Lab &amp; DSA Templates</h2>
+        <p>Start any college practical with a working, well-commented reference program using <code>code lab.c -t &lt;name&gt;</code>. Filter or search the 18 built-in templates below:</p>
+
+        <div class="template-controls">
+          <input type="text" id="template-search" class="template-search" placeholder="Filter templates by name, topic, or keyword (e.g. tree, sort, stl)...">
+          <div class="filter-pills">
+            <button class="filter-btn active" data-filter="all">All (18)</button>
+            <button class="filter-btn" data-filter="c-core">C Basics (6)</button>
+            <button class="filter-btn" data-filter="dsa">DSA (10)</button>
+            <button class="filter-btn" data-filter="cpp">C++ (2)</button>
+          </div>
+        </div>
 
         <div class="table-wrapper">
-          <table>
+          <table id="templates-table">
             <thead>
               <tr>
-                <th>Template Name</th>
+                <th>Template</th>
+                <th>Lang</th>
                 <th>Command</th>
-                <th>Covers</th>
+                <th>What It Covers</th>
               </tr>
             </thead>
             <tbody>
-              <tr>
+              <tr data-category="c-core">
                 <td><code>hello</code></td>
-                <td><code>cnew lab.c -t hello</code></td>
-                <td>Main function, argument counting, basic printing</td>
+                <td><span class="badge-lang badge-c">C</span></td>
+                <td><code>code lab.c -t hello</code></td>
+                <td>Standard <code>main()</code>, command-line arguments, formatted output</td>
               </tr>
-              <tr>
+              <tr data-category="dsa">
                 <td><code>linkedlist</code></td>
-                <td><code>cnew lab.c -t linkedlist</code></td>
-                <td>Node creation, insertion at end, node deletion, memory free</td>
+                <td><span class="badge-lang badge-c">C</span></td>
+                <td><code>code lab.c -t linkedlist</code></td>
+                <td>Single-link list creation, insert, delete, search, memory cleanup</td>
               </tr>
-              <tr>
+              <tr data-category="dsa">
+                <td><code>doublylinkedlist</code></td>
+                <td><span class="badge-lang badge-c">C</span></td>
+                <td><code>code lab.c -t doublylinkedlist</code></td>
+                <td>Double-link list head/tail insertion, deletion, forward and reverse traversal</td>
+              </tr>
+              <tr data-category="dsa">
                 <td><code>stack</code></td>
-                <td><code>cnew lab.c -t stack</code></td>
-                <td>Push, pop, peek, overflow, and underflow handling</td>
+                <td><span class="badge-lang badge-c">C</span></td>
+                <td><code>code lab.c -t stack</code></td>
+                <td>Array stack push, pop, peek, overflow and underflow guards</td>
               </tr>
-              <tr>
+              <tr data-category="dsa">
                 <td><code>queue</code></td>
-                <td><code>cnew lab.c -t queue</code></td>
-                <td>Circular queue enqueue, dequeue, empty/full checks</td>
+                <td><span class="badge-lang badge-c">C</span></td>
+                <td><code>code lab.c -t queue</code></td>
+                <td>Circular queue enqueue, dequeue, wrap-around index arithmetic</td>
               </tr>
-              <tr>
+              <tr data-category="dsa">
                 <td><code>binarytree</code></td>
-                <td><code>cnew lab.c -t binarytree</code></td>
-                <td>Binary Search Tree insertion, search, in/pre/post traversals</td>
+                <td><span class="badge-lang badge-c">C</span></td>
+                <td><code>code lab.c -t binarytree</code></td>
+                <td>Binary Search Tree insert, key lookup, inorder, preorder, postorder</td>
               </tr>
-              <tr>
+              <tr data-category="dsa">
+                <td><code>graph</code></td>
+                <td><span class="badge-lang badge-c">C</span></td>
+                <td><code>code lab.c -t graph</code></td>
+                <td>Graph representation with Breadth-First Search (BFS) and Depth-First Search (DFS)</td>
+              </tr>
+              <tr data-category="dsa">
                 <td><code>sort</code></td>
-                <td><code>cnew lab.c -t sort</code></td>
-                <td>Bubble sort, Selection sort, Insertion sort</td>
+                <td><span class="badge-lang badge-c">C</span></td>
+                <td><code>code lab.c -t sort</code></td>
+                <td>Bubble sort, Selection sort, and Insertion sort with comparison counters</td>
               </tr>
-              <tr>
+              <tr data-category="dsa">
+                <td><code>quicksort</code></td>
+                <td><span class="badge-lang badge-c">C</span></td>
+                <td><code>code lab.c -t quicksort</code></td>
+                <td>Divide-and-conquer QuickSort partition and MergeSort routines</td>
+              </tr>
+              <tr data-category="dsa">
+                <td><code>searching</code></td>
+                <td><span class="badge-lang badge-c">C</span></td>
+                <td><code>code lab.c -t searching</code></td>
+                <td>Linear scan, iterative Binary search, and recursive Binary search</td>
+              </tr>
+              <tr data-category="c-core dsa">
+                <td><code>recursion</code></td>
+                <td><span class="badge-lang badge-c">C</span></td>
+                <td><code>code lab.c -t recursion</code></td>
+                <td>Factorial, Fibonacci series, Euclidean GCD, and Tower of Hanoi</td>
+              </tr>
+              <tr data-category="c-core">
                 <td><code>matrix</code></td>
-                <td><code>cnew lab.c -t matrix</code></td>
-                <td>2D Array addition and matrix multiplication</td>
+                <td><span class="badge-lang badge-c">C</span></td>
+                <td><code>code lab.c -t matrix</code></td>
+                <td>2D array matrix addition, matrix multiplication, and transpose</td>
               </tr>
-              <tr>
-                <td><code>fileio</code></td>
-                <td><code>cnew lab.c -t fileio</code></td>
-                <td>File open, line-by-line reading, file writing</td>
-              </tr>
-              <tr>
+              <tr data-category="c-core">
                 <td><code>pointers</code></td>
-                <td><code>cnew lab.c -t pointers</code></td>
-                <td>Pass by reference, dynamic arrays with <code>malloc</code> and <code>free</code></td>
+                <td><span class="badge-lang badge-c">C</span></td>
+                <td><code>code lab.c -t pointers</code></td>
+                <td>Call-by-reference swap, pointer arithmetic, <code>malloc</code> and <code>free</code></td>
               </tr>
-              <tr>
+              <tr data-category="c-core">
                 <td><code>strings</code></td>
-                <td><code>cnew lab.c -t strings</code></td>
-                <td>String length, copy, compare, reverse without <code>string.h</code></td>
+                <td><span class="badge-lang badge-c">C</span></td>
+                <td><code>code lab.c -t strings</code></td>
+                <td>String length, copy, compare, reverse, and palindrome check without <code>&lt;string.h&gt;</code></td>
+              </tr>
+              <tr data-category="c-core">
+                <td><code>structures</code></td>
+                <td><span class="badge-lang badge-c">C</span></td>
+                <td><code>code lab.c -t structures</code></td>
+                <td><code>struct</code> student database, array of records, sorting by marks</td>
+              </tr>
+              <tr data-category="c-core">
+                <td><code>fileio</code></td>
+                <td><span class="badge-lang badge-c">C</span></td>
+                <td><code>code lab.c -t fileio</code></td>
+                <td>File creation, append, EOF-safe line reading, and character/line counting</td>
+              </tr>
+              <tr data-category="cpp dsa">
+                <td><code>stl</code></td>
+                <td><span class="badge-lang badge-cpp">C++</span></td>
+                <td><code>code lab.cpp -t stl</code></td>
+                <td>C++ Standard Template Library: <code>vector</code>, <code>map</code>, <code>set</code>, <code>priority_queue</code>, <code>sort</code></td>
+              </tr>
+              <tr data-category="cpp">
+                <td><code>oop</code></td>
+                <td><span class="badge-lang badge-cpp">C++</span></td>
+                <td><code>code lab.cpp -t oop</code></td>
+                <td>C++ classes, constructors, access specifiers, inheritance, and polymorphism</td>
               </tr>
             </tbody>
           </table>
         </div>
       </section>
 
-      <!-- Section: Multi-File Projects -->
-      <section id="multi-file">
-        <h2>Multi-File Projects (<code>cbuild</code>)</h2>
-        <p>When assignments grow beyond one file, run <code>cbuild</code> to compile all source files in your current folder:</p>
+      <section id="classic-cli">
+        <h2>Classic CLI Tools &amp; ByteC Studio Manager</h2>
+        <p>Run <code>bytec</code> with no arguments to launch the interactive Studio TUI menu, or run any subcommand:</p>
 
         <div class="code-wrapper">
           <div class="code-header">
             <span>bash</span>
             <button class="copy-btn">Copy</button>
           </div>
-          <pre><code>cbuild</code></pre>
-        </div>
-
-        <p>This finds every <code>.c</code> or <code>.cpp</code> file, compiles with <code>-Wall -Wextra -O2 -lm</code>, and produces an executable named <code>app</code>. Run it with <code>./app</code>.</p>
-
-        <p>To compile specific files to a custom binary:</p>
-        <div class="code-wrapper">
-          <div class="code-header">
-            <span>bash</span>
-            <button class="copy-btn">Copy</button>
-          </div>
-          <pre><code>cbuild main.c utils.c -o mygame
-cbuild clean   # Deletes *.out, *.o, and app binaries</code></pre>
+          <pre><code>bytec                   # Launch interactive ByteC Studio TUI menu
+bytec doctor            # Check compilers, storage permissions, and git setup
+bytec learn             # Interactive offline C lessons and coding challenges
+bytec resources         # Print curated C, C++, DSA, and Linux learning links
+bytec cheatsheet printf # Offline reference (printf, pointers, strings, loops, dsa, keys)
+bytec backup            # Save zip/tar backup of ~/c_projects into /sdcard/Download/
+bytec update            # Update ByteC tools and Neovim configuration</code></pre>
         </div>
       </section>
 
-      <!-- Section: Formatting -->
-      <section id="format">
-        <h2>Code Formatting (<code>cformat</code>)</h2>
-        <p>Format source code in-place with college Allman bracket formatting:</p>
+      <section id="resources">
+        <h2>Free Learning Roadmaps &amp; Resources</h2>
+        <p>Bookmark these free books, visualizers, and interactive courses. Every resource below works well on mobile browsers.</p>
 
-        <div class="code-wrapper">
-          <div class="code-header">
-            <span>bash</span>
-            <button class="copy-btn">Copy</button>
-          </div>
-          <pre><code>cformat lab1.c
-cformat --all               # Formats all files in folder
-cformat -s google lab1.c    # Formats with Google style</code></pre>
+        <h3>1. C Programming (Zero to Hero)</h3>
+        <div class="resource-grid">
+          <a href="https://beej.us/guide/bgc/" target="_blank" rel="noopener" class="resource-card">
+            <div>
+              <div class="resource-card-title">Beej's Guide to C Programming</div>
+              <p>The funniest, clearest free book on C ever written. Covers everything from <code>printf</code> to pointers and structs without dry textbook jargon.</p>
+            </div>
+            <span class="resource-tag">Free Book</span>
+          </a>
+
+          <a href="https://www.learn-c.org/" target="_blank" rel="noopener" class="resource-card">
+            <div>
+              <div class="resource-card-title">Learn-C.org</div>
+              <p>Short, interactive browser lessons covering variables, arrays, strings, pointers, structures, and linked lists.</p>
+            </div>
+            <span class="resource-tag">Interactive</span>
+          </a>
+
+          <a href="https://cs50.harvard.edu/x/" target="_blank" rel="noopener" class="resource-card">
+            <div>
+              <div class="resource-card-title">Harvard CS50x (Weeks 1-5)</div>
+              <p>David Malan's visual lectures on how C, RAM, pointers, stacks, heaps, and hash tables work under the hood.</p>
+            </div>
+            <span class="resource-tag">Video Course</span>
+          </a>
+
+          <a href="https://c-faq.com/" target="_blank" rel="noopener" class="resource-card">
+            <div>
+              <div class="resource-card-title">Comp.lang.c FAQ (C-FAQ)</div>
+              <p>Classic collection of answers to every confusing question about pointers, arrays, <code>scanf</code>, and undefined behavior.</p>
+            </div>
+            <span class="resource-tag">Deep Reference</span>
+          </a>
+        </div>
+
+        <h3>2. C++ &amp; Data Structures / Algorithms (DSA)</h3>
+        <div class="resource-grid">
+          <a href="https://www.learncpp.com/" target="_blank" rel="noopener" class="resource-card">
+            <div>
+              <div class="resource-card-title">LearnCPP.com</div>
+              <p>The gold-standard structured tutorial for modern C++, object-oriented programming, memory management, and the STL.</p>
+            </div>
+            <span class="resource-tag">C++ Curriculum</span>
+          </a>
+
+          <a href="https://visualgo.net/" target="_blank" rel="noopener" class="resource-card">
+            <div>
+              <div class="resource-card-title">VisuAlgo</div>
+              <p>Step-by-step animated visualizations for Linked Lists, Stacks, Queues, Binary Trees, Graphs, and Sorting algorithms.</p>
+            </div>
+            <span class="resource-tag">Visual DSA</span>
+          </a>
+
+          <a href="https://cp-algorithms.com/" target="_blank" rel="noopener" class="resource-card">
+            <div>
+              <div class="resource-card-title">CP-Algorithms</div>
+              <p>Practical explanations and C++ implementations of sorting, searching, dynamic programming, trees, and graph algorithms.</p>
+            </div>
+            <span class="resource-tag">Algorithms</span>
+          </a>
+
+          <a href="https://en.cppreference.com/" target="_blank" rel="noopener" class="resource-card">
+            <div>
+              <div class="resource-card-title">cppreference.com</div>
+              <p>Complete encyclopedia for every C and C++ standard library header, function signature, and container complexity.</p>
+            </div>
+            <span class="resource-tag">Manual</span>
+          </a>
+        </div>
+
+        <h3>3. Linux, Terminal, Git &amp; Termux Mastery</h3>
+        <div class="resource-grid">
+          <a href="https://linuxjourney.com/" target="_blank" rel="noopener" class="resource-card">
+            <div>
+              <div class="resource-card-title">Linux Journey</div>
+              <p>Bite-sized lessons starting at "Grasshopper" level for the command line, file navigation, permissions, and processes.</p>
+            </div>
+            <span class="resource-tag">Beginner Linux</span>
+          </a>
+
+          <a href="https://missing.csail.mit.edu/" target="_blank" rel="noopener" class="resource-card">
+            <div>
+              <div class="resource-card-title">MIT Missing Semester</div>
+              <p>MIT's course on the tools classes forget to teach: the shell, Vim/Neovim, command-line environments, debugging, and Git.</p>
+            </div>
+            <span class="resource-tag">MIT Course</span>
+          </a>
+
+          <a href="https://overthewire.org/wargames/bandit/" target="_blank" rel="noopener" class="resource-card">
+            <div>
+              <div class="resource-card-title">OverTheWire: Bandit</div>
+              <p>Learn Linux terminal commands by solving a 34-level SSH treasure hunt game inside Termux.</p>
+            </div>
+            <span class="resource-tag">Terminal Game</span>
+          </a>
+
+          <a href="https://explainshell.com/" target="_blank" rel="noopener" class="resource-card">
+            <div>
+              <div class="resource-card-title">ExplainShell</div>
+              <p>Paste any cryptic Linux command to see a visual diagram breaking down what each flag and pipe does.</p>
+            </div>
+            <span class="resource-tag">Command Decoder</span>
+          </a>
+
+          <a href="https://wiki.termux.com/wiki/Main_Page" target="_blank" rel="noopener" class="resource-card">
+            <div>
+              <div class="resource-card-title">Termux Official Wiki</div>
+              <p>Official handbook for Termux storage setup, touch keyboard shortcuts, package management, and Android APIs.</p>
+            </div>
+            <span class="resource-tag">Termux Docs</span>
+          </a>
+
+          <a href="https://www.openvim.com/" target="_blank" rel="noopener" class="resource-card">
+            <div>
+              <div class="resource-card-title">OpenVim Tutorial</div>
+              <p>Interactive 15-minute tutorial that builds muscle memory for Vim and Neovim movement keys.</p>
+            </div>
+            <span class="resource-tag">Neovim Practice</span>
+          </a>
         </div>
       </section>
 
-      <!-- Section: Debugging -->
-      <section id="debug">
-        <h2>Guided Debugging (<code>cdebug</code>)</h2>
-        <p>Debugging with raw GDB confuses beginners. The <code>cdebug</code> command compiles your code with debug symbols (<code>-g -O0</code>), prints an interactive cheat sheet, and launches GDB:</p>
-
-        <div class="code-wrapper">
-          <div class="code-header">
-            <span>bash</span>
-            <button class="copy-btn">Copy</button>
-          </div>
-          <pre><code>cdebug lab1.c</code></pre>
-        </div>
-
-        <h3>Quick GDB Commands</h3>
-        <ul>
-          <li><code>b main</code> - Breakpoint at main function</li>
-          <li><code>r</code> - Run program</li>
-          <li><code>n</code> - Step to next line</li>
-          <li><code>p myvar</code> - Print value of variable</li>
-          <li><code>bt</code> - Backtrace stack on segmentation faults</li>
-          <li><code>q</code> - Quit debugger</li>
-        </ul>
-      </section>
-
-      <!-- Section: Testing -->
-      <section id="test">
-        <h2>Automated Lab Testing (<code>ctest</code>)</h2>
-        <p>Verify your solution against test cases before submitting lab work.</p>
-
-        <p>Create a file named <code>test.txt</code> with this format:</p>
-        <div class="code-wrapper">
-          <div class="code-header">
-            <span>test.txt</span>
-          </div>
-          <pre><code>--- INPUT ---
-10 20
---- EXPECTED ---
-30</code></pre>
-        </div>
-
-        <p>Run the test:</p>
-        <div class="code-wrapper">
-          <div class="code-header">
-            <span>bash</span>
-            <button class="copy-btn">Copy</button>
-          </div>
-          <pre><code>ctest lab1.c test.txt</code></pre>
-        </div>
-
-        <p>If the output matches, <code>ctest</code> prints green confirmation. If output differs, it displays expected output vs actual output with line differences.</p>
-      </section>
-
-      <!-- Section: ByteC Manager -->
-      <section id="manager">
-        <h2>ByteC Manager Commands</h2>
-        
-        <h3>System Health Check (<code>bytec doctor</code>)</h3>
-        <p>Audits installed compilers, storage links, git setup, and disk space. Suggests exact commands for any missing tools.</p>
-        <div class="code-wrapper">
-          <div class="code-header">
-            <span>bash</span>
-            <button class="copy-btn">Copy</button>
-          </div>
-          <pre><code>bytec doctor</code></pre>
-        </div>
-
-        <h3>Configure Git Identity (<code>bytec git</code>)</h3>
-        <p>Inspect or update your Git author name and email address with an interactive prompt:</p>
-        <div class="code-wrapper">
-          <div class="code-header">
-            <span>bash</span>
-            <button class="copy-btn">Copy</button>
-          </div>
-          <pre><code>bytec git</code></pre>
-        </div>
-
-        <h3>Offline C Cheatsheet (<code>bytec cheatsheet</code>)</h3>
-        <div class="code-wrapper">
-          <div class="code-header">
-            <span>bash</span>
-            <button class="copy-btn">Copy</button>
-          </div>
-          <pre><code>bytec cheatsheet printf
-bytec cheatsheet pointers
-bytec cheatsheet strings
-bytec cheatsheet loops
-bytec cheatsheet dsa</code></pre>
-        </div>
-
-        <h3>Share Code via Link (<code>bytec share</code>)</h3>
-        <p>Uploads your C file to a secure paste service and copies the link to your Android clipboard:</p>
-        <div class="code-wrapper">
-          <div class="code-header">
-            <span>bash</span>
-            <button class="copy-btn">Copy</button>
-          </div>
-          <pre><code>bytec share lab1.c</code></pre>
-        </div>
-
-        <h3>Backup to Phone Storage (<code>bytec backup</code>)</h3>
-        <p>Archives all code inside <code>~/c_projects</code> into a compressed archive inside <code>/sdcard/Download/</code>:</p>
-        <div class="code-wrapper">
-          <div class="code-header">
-            <span>bash</span>
-            <button class="copy-btn">Copy</button>
-          </div>
-          <pre><code>bytec backup</code></pre>
-        </div>
-
-        <h3>Codebase Statistics (<code>bytec stats</code>)</h3>
-        <div class="code-wrapper">
-          <div class="code-header">
-            <span>bash</span>
-            <button class="copy-btn">Copy</button>
-          </div>
-          <pre><code>bytec stats</code></pre>
-        </div>
-      </section>
-
-      <!-- Section: FAQ -->
       <section id="faq">
-        <h2>Common Doubts & FAQ</h2>
+        <h2>Troubleshooting &amp; FAQ</h2>
 
-        <h3>1. Where are my files stored on my phone?</h3>
-        <p>Your programs live in <code>~/c_projects</code>. This directory links to <code>/sdcard/C_Projects</code>. You can open any Android file manager app (Google Files, Solid Explorer, ZArchiver) and view your <code>.c</code> files inside your phone's internal storage.</p>
+        <h3>1. Where are my C files and lab reports saved on my phone?</h3>
+        <p>Your source code lives in <code>~/c_projects</code>, which links to <code>/sdcard/C_Projects</code> in your phone's internal storage. When you run <code>submit lab1.c</code>, your <code>.doc</code> and <code>.pdf</code> lab reports are saved inside <code>/sdcard/Download/ByteC/</code> so you can share them on WhatsApp, Google Classroom, or email right away.</p>
 
-        <h3>2. My keyboard disappeared in Termux. How do I get it back?</h3>
-        <p>Tap anywhere on the terminal screen. If it does not appear, swipe down from the top status bar or hold the phone's <strong>Volume Up</strong> button and press <strong>Q</strong>.</p>
+        <h3>2. My touch keyboard disappeared in Termux. How do I bring it back?</h3>
+        <p>Tap the center of the terminal screen. If it stays hidden, swipe the left drawer open in Termux and tap <strong>KEYBOARD</strong>, or hold <strong>Volume Up + Q</strong> to toggle the extra keys bar.</p>
 
-        <h3>3. How do I copy and paste in Termux?</h3>
-        <p>Long press anywhere on the black terminal screen. A menu appears with <strong>COPY</strong>, <strong>PASTE</strong>, and <strong>MORE</strong>.</p>
+        <h3>3. Why did my program print a giant random number like <code>32765</code> or <code>-1094795586</code>?</h3>
+        <p>You declared a local variable like <code>int sum;</code> without setting it to <code>0</code> (<code>int sum = 0;</code>). Local variables in C do not start at zero; they hold whatever leftover bits were sitting in RAM before your function ran. Run <code>explain</code> or <code>check</code> and ByteC will point out the uninitialized variable.</p>
 
-        <h3>4. How do I exit Neovim?</h3>
-        <p>Press <code>ESC</code> on your touch toolbar, type <code>:wq</code>, and press Enter to save and quit. To exit without saving, type <code>:q!</code> and press Enter.</p>
-
-        <h3>5. Why do <code>gcc</code> and <code>g++</code> work in Termux?</h3>
-        <p>Standard Termux lacks GCC. ByteC adds lightweight binary wrappers for <code>gcc</code> and <code>g++</code> that translate commands directly to Clang, so lab manual commands compile without modification.</p>
-
-        <h3>6. Can I use an external keyboard with my phone?</h3>
-        <p>Yes. Connect any USB keyboard via an OTG adapter, or pair a Bluetooth keyboard. All standard terminal and Neovim shortcuts (<code>Ctrl + S</code>, <code>Ctrl + Z</code>) work as expected.</p>
-
-        <h3>7. Does ByteC require active internet?</h3>
-        <p>Only during initial installation. After install, compilers, Neovim, templates, cheatsheets, and formatters work completely offline.</p>
-      </section>
-
-      <!-- Section: Uninstall -->
-      <section id="uninstall">
-        <h2>Uninstalling ByteC</h2>
-        <p>To remove ByteC while keeping your source code safe:</p>
-        <div class="code-wrapper">
-          <div class="code-header">
-            <span>bash</span>
-            <button class="copy-btn">Copy</button>
-          </div>
-          <pre><code>bytec uninstall</code></pre>
-        </div>
-        <p>This removes the CLI binaries, touch key configurations, and shell hooks. Your source code inside <code>~/c_projects</code> remains untouched.</p>
+        <h3>4. How do I uninstall ByteC without losing my code?</h3>
+        <p>Run <code>bytec uninstall</code>. It removes the CLI scripts and shell hooks while leaving all your files in <code>~/c_projects</code> and <code>/sdcard/C_Projects</code> intact.</p>
       </section>
 
       <footer style="margin-top: 4rem; padding-top: 2rem; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 0.85rem; text-align: center;">
-        <p>ByteC is open source software released under the MIT License.</p>
-        <p>Maintained by <a href="https://github.com/0xOpCode" target="_blank" rel="noopener" style="color: var(--accent-cyan); text-decoration: none;">0xOpCode</a>.</p>
+        <p>ByteC v2.0 is open source software released under the MIT License.</p>
+        <p>Built by <a href="https://github.com/0xOpCode" target="_blank" rel="noopener" style="color: var(--accent-cyan); text-decoration: none;">0xOpCode</a> for students everywhere.</p>
       </footer>
 
     </main>

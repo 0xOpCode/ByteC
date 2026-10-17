@@ -21,8 +21,8 @@ void writeFile(const char *filename)
     printf("Enter text to write into %s (Type 'END' on a new line to finish):\n", filename);
     char line[BUFFER_SIZE];
 
-    // Clear input buffer before reading lines
-    while (getchar() != '\n');
+    int ch;
+    while ((ch = getchar()) != '\n' && ch != EOF);
 
     while (fgets(line, sizeof(line), stdin))
     {
@@ -31,7 +31,7 @@ void writeFile(const char *filename)
     }
 
     fclose(fp);
-    printf("File written successfully.\n");
+    printf("File write complete.\n");
 }
 
 void readFile(const char *filename)
@@ -75,7 +75,7 @@ int main()
     else if (choice == 2)
         readFile(filename);
     else
-        printf("Invalid choice!\n");
+        printf("Invalid choice.\n");
 
     return 0;
 }

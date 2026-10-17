@@ -1,18 +1,41 @@
 #!/bin/sh
 # ==============================================================================
-# ByteC: Master Manager CLI
+# ByteC: Master Manager CLI and Interactive Studio Menu
 # Usage: bytec [command]
 # ==============================================================================
 
-BYTEC_DIR="${HOME}/.bytec"
+BYTEC_DIR="${BYTEC_HOME:-$HOME/.bytec}"
+SCRIPT_DIR="$(cd "$(dirname "$0")" 2>/dev/null && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." 2>/dev/null && pwd)"
 NVIM_DIR="${HOME}/.config/nvim"
-TEMPLATE_DIR="$BYTEC_DIR/config/templates"
+
+if [ -d "$BYTEC_DIR/config/templates" ]; then
+    TEMPLATE_DIR="$BYTEC_DIR/config/templates"
+elif [ -d "$REPO_ROOT/config/templates" ]; then
+    TEMPLATE_DIR="$REPO_ROOT/config/templates"
+else
+    TEMPLATE_DIR="$BYTEC_DIR/config/templates"
+fi
 
 get_version() {
     if [ -f "$BYTEC_DIR/VERSION" ]; then
-        cat "$BYTEC_DIR/VERSION" | tr -d '[:space:]'
+        tr -d '[:space:]' < "$BYTEC_DIR/VERSION"
+    elif [ -f "$REPO_ROOT/VERSION" ]; then
+        tr -d '[:space:]' < "$REPO_ROOT/VERSION"
     else
-        echo "1.1.0"
+        echo "2.0.0"
+    fi
+}
+
+run_tool() {
+    TOOL_NAME="$1"
+    shift
+    if [ -x "$SCRIPT_DIR/$TOOL_NAME" ]; then
+        "$SCRIPT_DIR/$TOOL_NAME" "$@"
+    elif [ -x "$BYTEC_DIR/bin/$TOOL_NAME" ]; then
+        "$BYTEC_DIR/bin/$TOOL_NAME" "$@"
+    else
+        "$TOOL_NAME" "$@"
     fi
 }
 
@@ -27,7 +50,7 @@ cmd_version() {
 }
 
 cmd_doctor() {
-    echo "ByteC Environment Diagnostics"
+    echo "ByteC Environment Diagnostics (v$(get_version))"
     echo "----------------------------------------------"
     ERRORS=0
     WARNINGS=0
@@ -71,7 +94,7 @@ cmd_doctor() {
     if command -v gdb >/dev/null 2>&1; then
         echo "GDB Debugger:    Installed"
     else
-        echo "GDB Debugger:    Missing (Needed for cdebug)"
+        echo "GDB Debugger:    Missing (Needed for debug / cdebug)"
         echo "  Fix: pkg install gdb"
         WARNINGS=$((WARNINGS + 1))
     fi
@@ -80,7 +103,7 @@ cmd_doctor() {
     if command -v clang-format >/dev/null 2>&1; then
         echo "clang-format:    Installed"
     else
-        echo "clang-format:    Missing (Needed for cformat)"
+        echo "clang-format:    Missing (Needed for fix / cformat)"
         echo "  Fix in Termux: pkg install clang"
         WARNINGS=$((WARNINGS + 1))
     fi
@@ -95,7 +118,18 @@ cmd_doctor() {
         WARNINGS=$((WARNINGS + 1))
     fi
 
-    # 7. Git
+    # 7. Termux API
+    if [ -n "$PREFIX" ] && [ -d "$PREFIX" ] && echo "$PREFIX" | grep -q "com.termux"; then
+        if command -v termux-notification >/dev/null 2>&1; then
+            echo "Termux API:      Installed"
+        else
+            echo "Termux API:      Missing (Optional for notifications/clipboard)"
+            echo "  Fix: pkg install termux-api"
+            WARNINGS=$((WARNINGS + 1))
+        fi
+    fi
+
+    # 8. Git
     if command -v git >/dev/null 2>&1; then
         GIT_NAME=$(git config --global user.name 2>/dev/null)
         if [ -n "$GIT_NAME" ]; then
@@ -110,7 +144,7 @@ cmd_doctor() {
         ERRORS=$((ERRORS + 1))
     fi
 
-    # 8. Storage & Workspace
+    # 9. Storage & Workspace
     if [ -d "$HOME/c_projects" ]; then
         TARGET=$(readlink -f "$HOME/c_projects" 2>/dev/null || echo "local")
         echo "Workspace:       ~/c_projects -> $TARGET"
@@ -120,7 +154,7 @@ cmd_doctor() {
         WARNINGS=$((WARNINGS + 1))
     fi
 
-    # 9. Free disk space
+    # 10. Free disk space
     AVAIL_MB=$(df -m "$HOME" 2>/dev/null | awk 'NR==2 {print $4}')
     if [ -n "$AVAIL_MB" ]; then
         if [ "$AVAIL_MB" -gt 300 ]; then
@@ -146,33 +180,56 @@ cmd_template() {
     TARGET="$2"
 
     if [ -z "$NAME" ] || [ "$NAME" = "list" ] || [ "$NAME" = "-l" ]; then
-        echo "Available Lab and DSA Templates:"
-        echo "----------------------------------------------"
-        echo "  hello       - Hello World with argument parsing"
-        echo "  linkedlist  - Singly linked list (insert, delete, display)"
-        echo "  stack       - Array-based stack (push, pop, peek)"
-        echo "  queue       - Circular queue operations"
-        echo "  binarytree  - Binary search tree (traversals, search)"
-        echo "  sort        - Bubble, Selection, and Insertion sorts"
-        echo "  matrix      - 2D matrix addition and multiplication"
-        echo "  fileio      - File read and write operations"
-        echo "  pointers    - Dynamic memory and pointer swap"
-        echo "  strings     - Custom string manipulation functions"
-        echo "----------------------------------------------"
-        echo "Usage: bytec template <name> [filename.c]"
+        echo "Available Lab and DSA Templates (18):"
+        echo "----------------------------------------------------------------"
+        echo "  C Fundamentals & Lab Programs:"
+        echo "    hello            - Hello World with command-line args"
+        echo "    pointers         - Dynamic memory (malloc/free) and pointer swap"
+        echo "    strings          - Custom string length, reverse, palindrome"
+        echo "    recursion        - Factorial, Fibonacci, GCD, Tower of Hanoi"
+        echo "    structures       - Student record struct array and sorting"
+        echo "    matrix           - 2D matrix addition, multiplication, transpose"
+        echo "    fileio           - File read, write, and line counting"
+        echo ""
+        echo "  Data Structures & Algorithms (C):"
+        echo "    linkedlist       - Singly linked list (insert, delete, display)"
+        echo "    doublylinkedlist - Doubly linked list forward/backward traversal"
+        echo "    stack            - Array-based stack (push, pop, peek)"
+        echo "    queue            - Circular queue implementation"
+        echo "    binarytree       - Binary search tree (insert, search, traversals)"
+        echo "    graph            - Graph BFS and DFS (adjacency list)"
+        echo "    sort             - Bubble, Selection, and Insertion sorts"
+        echo "    quicksort        - QuickSort and MergeSort divide-and-conquer"
+        echo "    searching        - Linear search and iterative/recursive binary search"
+        echo ""
+        echo "  C++ & Object-Oriented Programming (.cpp):"
+        echo "    stl              - C++20 STL containers (vector, map, set, sort)"
+        echo "    oop              - C++ classes, inheritance, polymorphism"
+        echo "----------------------------------------------------------------"
+        echo "Usage: bytec template <name> [filename]"
         echo "Example: bytec template linkedlist lab2.c"
+        echo "         bytec template stl demo.cpp"
         return
     fi
 
-    TFILE="$TEMPLATE_DIR/${NAME}.c"
-    if [ ! -f "$TFILE" ]; then
+    TFILE=""
+    DEF_EXT="c"
+    if [ -f "$TEMPLATE_DIR/${NAME}.c" ]; then
+        TFILE="$TEMPLATE_DIR/${NAME}.c"
+        DEF_EXT="c"
+    elif [ -f "$TEMPLATE_DIR/${NAME}.cpp" ]; then
+        TFILE="$TEMPLATE_DIR/${NAME}.cpp"
+        DEF_EXT="cpp"
+    fi
+
+    if [ -z "$TFILE" ]; then
         echo "Template '$NAME' not found."
         echo "Run 'bytec template list' to see available templates."
         return 1
     fi
 
     if [ -z "$TARGET" ]; then
-        TARGET="${NAME}.c"
+        TARGET="${NAME}.${DEF_EXT}"
     fi
 
     if [ -f "$TARGET" ]; then
@@ -182,6 +239,13 @@ cmd_template() {
         echo "Created '$TARGET' from template '$NAME'."
     fi
 
+    mkdir -p "$BYTEC_DIR" 2>/dev/null || true
+    T_DIR="$(cd "$(dirname "$TARGET")" 2>/dev/null && pwd)"
+    [ -n "$T_DIR" ] && printf "%s/%s\n" "$T_DIR" "$(basename "$TARGET")" > "$BYTEC_DIR/.last_file" 2>/dev/null || true
+
+    if [ "${BYTEC_NO_EDIT:-0}" = "1" ]; then
+        return 0
+    fi
     command -v nvim >/dev/null 2>&1 && exec nvim "$TARGET" || exec nano "$TARGET"
 }
 
@@ -302,6 +366,123 @@ EOF
     esac
 }
 
+cmd_profile() {
+    mkdir -p "$BYTEC_DIR"
+    PROFILE_FILE="$BYTEC_DIR/student_profile.conf"
+
+    STUDENT_NAME=""
+    ROLL_NO=""
+    COLLEGE_NAME=""
+    DEPARTMENT=""
+    SEMESTER=""
+    SUBJECT=""
+
+    if [ -f "$PROFILE_FILE" ]; then
+        # shellcheck disable=SC1090
+        . "$PROFILE_FILE" 2>/dev/null || true
+    fi
+
+    echo "ByteC Student Profile Configuration"
+    echo "Used by 'submit' when generating college lab records (.doc / .pdf)."
+    echo "----------------------------------------------------------------"
+    echo "  Current Name:       ${STUDENT_NAME:-Not set}"
+    echo "  Current Roll No:    ${ROLL_NO:-Not set}"
+    echo "  Current College:    ${COLLEGE_NAME:-Not set}"
+    echo "  Current Department: ${DEPARTMENT:-Not set}"
+    echo "  Current Semester:   ${SEMESTER:-Not set}"
+    echo "  Current Subject:    ${SUBJECT:-Not set}"
+    echo "----------------------------------------------------------------"
+
+    printf "Student Name [%s]: " "${STUDENT_NAME}"
+    read -r IN_NAME
+    [ -n "$IN_NAME" ] && STUDENT_NAME="$IN_NAME"
+
+    printf "Roll Number [%s]: " "${ROLL_NO}"
+    read -r IN_ROLL
+    [ -n "$IN_ROLL" ] && ROLL_NO="$IN_ROLL"
+
+    printf "College / University [%s]: " "${COLLEGE_NAME}"
+    read -r IN_COLLEGE
+    [ -n "$IN_COLLEGE" ] && COLLEGE_NAME="$IN_COLLEGE"
+
+    printf "Department / Branch [%s]: " "${DEPARTMENT}"
+    read -r IN_DEPT
+    [ -n "$IN_DEPT" ] && DEPARTMENT="$IN_DEPT"
+
+    printf "Semester / Section [%s]: " "${SEMESTER}"
+    read -r IN_SEM
+    [ -n "$IN_SEM" ] && SEMESTER="$IN_SEM"
+
+    printf "Default Subject / Lab [%s]: " "${SUBJECT}"
+    read -r IN_SUBJ
+    [ -n "$IN_SUBJ" ] && SUBJECT="$IN_SUBJ"
+
+    cat << EOF > "$PROFILE_FILE"
+STUDENT_NAME="$STUDENT_NAME"
+ROLL_NO="$ROLL_NO"
+COLLEGE_NAME="$COLLEGE_NAME"
+DEPARTMENT="$DEPARTMENT"
+SEMESTER="$SEMESTER"
+SUBJECT="$SUBJECT"
+EOF
+
+    echo ""
+    echo "Saved student profile to $PROFILE_FILE"
+}
+
+cmd_resources() {
+    cat << 'EOF'
+ByteC Curated Free Learning Resources (C, C++, DSA, Linux, Termux)
+==================================================================
+
+1. C & Systems Programming:
+   - Beej's Guide to C Programming
+     https://beej.us/guide/bgc/
+   - Learn-C.org Interactive C Tutorial
+     https://www.learn-c.org/
+   - Harvard CS50x (Introduction to Computer Science)
+     https://cs50.harvard.edu/x/
+
+2. C++ & Standard Template Library (STL):
+   - LearnCPP.com (Comprehensive Modern C++ Tutorials)
+     https://www.learncpp.com/
+   - CPlusPlus / CPPReference Documentation
+     https://en.cppreference.com/
+
+3. Data Structures & Algorithms Visualization:
+   - VisuAlgo (Visualizing Data Structures and Algorithms through Animation)
+     https://visualgo.net/en
+
+4. Linux, Shell & Developer Tools:
+   - Linux Journey (Interactive Linux Command Line Guide)
+     https://linuxjourney.com/
+   - MIT Missing Semester of Your CS Education (Shell, Vim, Git, GDB)
+     https://missing.csail.mit.edu/
+   - OverTheWire: Bandit (Learn Linux Wargame for Beginners)
+     https://overthewire.org/wargames/bandit/
+
+5. Android Termux Guides:
+   - Official Termux Wiki
+     https://wiki.termux.com/wiki/Main_Page
+==================================================================
+Tip: Run 'learn' in your terminal for offline interactive C lessons.
+EOF
+}
+
+cmd_notify() {
+    TITLE="${1:-ByteC}"
+    shift 2>/dev/null || true
+    MESSAGE="${*:-Task completed in ByteC.}"
+
+    if command -v termux-notification >/dev/null 2>&1; then
+        termux-notification --title "$TITLE" --content "$MESSAGE" 2>/dev/null || true
+        echo "Notification sent: $TITLE - $MESSAGE"
+    else
+        echo "Notice [$TITLE]: $MESSAGE"
+        echo "(Install Termux:API app and 'pkg install termux-api' for Android system notifications)"
+    fi
+}
+
 cmd_stats() {
     PROJ_DIR="$HOME/c_projects"
     echo "ByteC Workspace Statistics"
@@ -367,7 +548,9 @@ cmd_backup() {
     fi
 
     DEST="$HOME/$BACKUP_NAME"
-    if [ -d "/sdcard/Download" ] && [ -w "/sdcard/Download" ]; then
+    if [ -d "/sdcard/Download/ByteC" ] && [ -w "/sdcard/Download/ByteC" ]; then
+        DEST="/sdcard/Download/ByteC/$BACKUP_NAME"
+    elif [ -d "/sdcard/Download" ] && [ -w "/sdcard/Download" ]; then
         DEST="/sdcard/Download/$BACKUP_NAME"
     elif [ -d "/sdcard" ] && [ -w "/sdcard" ]; then
         DEST="/sdcard/$BACKUP_NAME"
@@ -413,20 +596,22 @@ cmd_tutorial() {
     echo "================================================================"
     echo "ByteC sets up C and C++ tools in native Termux."
     echo ""
-    echo "Step 1: Create a file"
-    echo "  Run: cnew hello.c"
-    echo "  Or with template: cnew lab1.c -t linkedlist"
+    echo "Step 1: Create or edit a file"
+    echo "  Run: code hello.c"
+    echo "  Or with template: code lab1.c -t linkedlist"
     echo ""
     echo "Step 2: Compile and Run"
-    echo "  Run: crun hello.c"
-    echo "  With automated input: crun lab1.c -i input.txt"
+    echo "  Run: run"
+    echo "  Or specify file: run hello.c"
+    echo "  With automated input: run lab1.c -i input.txt"
     echo "  Or inside Neovim press: <Space> + r"
     echo ""
-    echo "Step 3: Multi-file and Testing"
-    echo "  Multi-file build: cbuild"
-    echo "  Format code:      cformat hello.c"
-    echo "  Debug:            cdebug hello.c"
-    echo "  Run tests:        ctest hello.c test.txt"
+    echo "Step 3: Explain, Check, Fix, and Submit"
+    echo "  Explain errors:   explain"
+    echo "  Check and test:   check hello.c"
+    echo "  Format and fix:   fix hello.c"
+    echo "  Generate report:  submit hello.c"
+    echo "  Interactive C:    learn"
     echo ""
     echo "Step 4: Sharing and Diagnostics"
     echo "  Share with link:  bytec share hello.c"
@@ -449,7 +634,7 @@ cmd_uninstall() {
             echo "Removing ByteC files..."
             BIN_DIR="$PREFIX/bin"
             [ ! -d "$BIN_DIR" ] && BIN_DIR="${HOME}/.local/bin"
-            for cmd in gcc g++ cnew crun cbuild cformat cdebug ctest bytec; do
+            for cmd in gcc g++ cnew crun cbuild cformat cdebug ctest bytec code run explain check fix submit learn debug; do
                 rm -f "$BIN_DIR/$cmd" 2>/dev/null
                 rm -f "${HOME}/.local/bin/$cmd" 2>/dev/null
             done
@@ -473,7 +658,7 @@ cmd_uninstall() {
 
 cmd_update() {
     echo "Checking for updates..."
-    
+
     if [ -d "$BYTEC_DIR/.git" ]; then
         echo "Updating ByteC tools..."
         git -C "$BYTEC_DIR" pull --ff-only || true
@@ -482,7 +667,7 @@ cmd_update() {
     if [ -d "$NVIM_DIR/.git" ]; then
         echo "Updating Neovim configuration..."
         git -C "$NVIM_DIR" pull --ff-only || true
-        command -v nvim >/dev/null 2>&1 && nvim --headless "+Lazy! sync" +qa >/dev/null 2>&1 || true
+        command -v nvim >/dev/null 2>&1 && nvim --headless "+Lazy sync" +qa >/dev/null 2>&1 || true
     fi
 
     mkdir -p "$BYTEC_DIR"
@@ -506,6 +691,9 @@ cmd_status() {
     fi
     if [ -d "$HOME/c_projects" ]; then
         echo "Workspace:      ~/c_projects -> $(readlink -f "$HOME/c_projects" 2>/dev/null || echo 'local')"
+    fi
+    if [ -f "$BYTEC_DIR/.last_file" ]; then
+        echo "Last File:      $(head -n 1 "$BYTEC_DIR/.last_file" 2>/dev/null)"
     fi
 }
 
@@ -557,20 +745,28 @@ cmd_git() {
 cmd_help() {
     echo "ByteC CLI Commands (v$(get_version))"
     echo ""
-    echo "Coding Commands:"
-    echo "  cnew <file.c>              Create new C file (or template: -t stack)"
-    echo "  crun <file.c>              Compile and run, input support (-i input.txt)"
-    echo "  cbuild                     Compile multi-file project into binary"
-    echo "  cformat <file.c>           Format code (Allman or Google style)"
-    echo "  cdebug <file.c>            Start guided GDB debugging session"
-    echo "  ctest <file.c> <test.txt>  Run test cases and verify output"
-    echo "  gcc / g++                  Compiler wrappers (forward to clang)"
+    echo "Beginner Verbs:"
+    echo "  code [file.c]              Create or edit C/C++ program (or template: -t stack)"
+    echo "  run [file.c]               Compile and run current or specified program"
+    echo "  explain [file.c]           Plain-English compiler and crash error tutor"
+    echo "  check [file.c] [test.txt]  Run static checks, warnings, and test cases"
+    echo "  fix [file.c]               Auto-format and repair common syntax issues"
+    echo "  submit [file.c]            Generate Word (.doc) and PDF (.pdf) lab records"
+    echo "  learn [lesson]             Interactive offline C programming lessons"
+    echo "  debug [file.c]             Start guided GDB debugging session"
     echo ""
-    echo "Management:"
+    echo "Power-User Aliases:"
+    echo "  cnew, crun, cbuild, cformat, cdebug, ctest, gcc, g++"
+    echo ""
+    echo "Studio & Management:"
+    echo "  bytec                      Launch interactive ByteC v2.0 Studio Menu"
     echo "  bytec doctor               Run diagnostic system check"
-    echo "  bytec git                  Configure Git user name and email"
-    echo "  bytec template [name]      Browse and scaffold lab templates"
+    echo "  bytec profile              Configure student profile for lab reports"
+    echo "  bytec resources            View curated free C/C++/DSA/Linux learning links"
+    echo "  bytec notify <title> [msg] Send Android notification via Termux:API"
+    echo "  bytec template [name]      Browse and scaffold 18 lab/DSA templates"
     echo "  bytec cheatsheet [topic]   View offline C reference guide"
+    echo "  bytec git                  Configure Git user name and email"
     echo "  bytec share <file.c>       Share code online with web link"
     echo "  bytec backup / restore     Backup or restore ~/c_projects"
     echo "  bytec stats                View file counts and workspace size"
@@ -579,30 +775,139 @@ cmd_help() {
     echo "  bytec update               Pull updates for ByteC and Neovim"
     echo "  bytec version              Show ByteC version"
     echo "  bytec uninstall            Remove ByteC installation"
-    echo ""
-    echo "Neovim Shortcuts:"
-    echo "  <Space> + r                Save, format, compile, and run"
-    echo "  Ctrl + s                   Save and format current file"
-    echo "  Ctrl + z / Ctrl + y        Undo / Redo"
-    echo "  Ctrl + ~ / Ctrl + j        Toggle floating terminal"
-    echo "  <Space> + e                Toggle file explorer tree"
+}
+
+cmd_studio_menu() {
+    LAST_FILE_DISPLAY="None"
+    if [ -f "$BYTEC_DIR/.last_file" ]; then
+        LF=$(head -n 1 "$BYTEC_DIR/.last_file" 2>/dev/null)
+        [ -n "$LF" ] && LAST_FILE_DISPLAY="$LF"
+    fi
+
+    echo "================================================================"
+    echo "  ByteC v2.0 Studio Menu (Pocket C & C++ Environment)"
+    echo "  Recent File: $LAST_FILE_DISPLAY"
+    echo "================================================================"
+    echo "  1. Create or Edit Program (code)"
+    echo "  2. Compile & Run Last Program (run)"
+    echo "  3. Explain Compiler/Crash Error (explain)"
+    echo "  4. Check & Test Program (check)"
+    echo "  5. Generate Lab Report .doc & .pdf (submit)"
+    echo "  6. Browse 18 Lab & DSA Templates (template)"
+    echo "  7. Interactive C Lessons (learn)"
+    echo "  8. Free C/C++/Linux Learning Resources (resources)"
+    echo "  9. System Doctor & Setup (doctor)"
+    echo "  0. Exit"
+    echo "================================================================"
+    printf "Choose an option [0-9]: "
+    read -r MENU_CHOICE || exit 0
+
+    case "$MENU_CHOICE" in
+        1)
+            run_tool code
+            ;;
+        2)
+            run_tool run
+            ;;
+        3)
+            run_tool explain
+            ;;
+        4)
+            run_tool check
+            ;;
+        5)
+            run_tool submit
+            ;;
+        6)
+            cmd_template list
+            ;;
+        7)
+            run_tool learn
+            ;;
+        8)
+            cmd_resources
+            ;;
+        9)
+            cmd_doctor
+            ;;
+        0|q|Q|exit|"")
+            exit 0
+            ;;
+        *)
+            echo "Invalid choice '$MENU_CHOICE'. Run 'bytec help' for commands."
+            exit 1
+            ;;
+    esac
 }
 
 case "$1" in
-    doctor) cmd_doctor ;;
-    version|-v|--version) cmd_version ;;
-    template|tpl) shift; cmd_template "$@" ;;
-    cheatsheet|cheat) shift; cmd_cheatsheet "$@" ;;
-    stats) cmd_stats ;;
-    share) shift; cmd_share "$@" ;;
-    backup) cmd_backup ;;
-    restore) shift; cmd_restore "$@" ;;
-    tutorial|quickstart) cmd_tutorial ;;
-    git) cmd_git ;;
-    uninstall) cmd_uninstall ;;
-    update) cmd_update ;;
-    status) cmd_status ;;
-    check)  cmd_check_silent ;;
-    help|-h|--help|"") cmd_help ;;
-    *) echo "Unknown command: '$1'. Run 'bytec help' for available commands." ;;
+    "")
+        cmd_studio_menu
+        ;;
+    menu|studio)
+        cmd_studio_menu
+        ;;
+    doctor)
+        cmd_doctor
+        ;;
+    version|-v|--version)
+        cmd_version
+        ;;
+    template|tpl)
+        shift
+        cmd_template "$@"
+        ;;
+    cheatsheet|cheat)
+        shift
+        cmd_cheatsheet "$@"
+        ;;
+    profile)
+        cmd_profile
+        ;;
+    resources|links)
+        cmd_resources
+        ;;
+    notify)
+        shift
+        cmd_notify "$@"
+        ;;
+    stats)
+        cmd_stats
+        ;;
+    share)
+        shift
+        cmd_share "$@"
+        ;;
+    backup)
+        cmd_backup
+        ;;
+    restore)
+        shift
+        cmd_restore "$@"
+        ;;
+    tutorial|quickstart)
+        cmd_tutorial
+        ;;
+    git)
+        cmd_git
+        ;;
+    uninstall)
+        cmd_uninstall
+        ;;
+    update)
+        cmd_update
+        ;;
+    status)
+        cmd_status
+        ;;
+    check)
+        cmd_check_silent
+        ;;
+    help|-h|--help)
+        cmd_help
+        ;;
+    *)
+        echo "Unknown command: '$1'. Run 'bytec help' for available commands."
+        exit 1
+        ;;
 esac

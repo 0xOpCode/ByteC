@@ -10,7 +10,7 @@
 int main(int argc, char *argv[])
 {
     printf("=========================================\n");
-    printf("🚀 Hello from ByteC Pocket C Environment!\n");
+    printf("Hello from ByteC Pocket C Environment.\n");
     printf("=========================================\n");
 
     if (argc > 1)

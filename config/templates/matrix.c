@@ -69,7 +69,7 @@ int main()
 
         if (c1 != r2)
         {
-            printf("Error: Matrix multiplication not possible! (Cols of A must equal Rows of B)\n");
+            printf("Error: Matrix multiplication not possible (Cols of A must equal Rows of B).\n");
             return 1;
         }
 
@@ -92,7 +92,7 @@ int main()
     }
     else
     {
-        printf("Invalid choice!\n");
+        printf("Invalid choice.\n");
     }
 
     return 0;

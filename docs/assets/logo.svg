@@ -1,0 +1,107 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" fill="none">
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="256" y2="256" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFF0F5"/>
+      <stop offset="50%" stop-color="#F0F4FF"/>
+      <stop offset="100%" stop-color="#E8F8F5"/>
+    </linearGradient>
+    <linearGradient id="rimGrad" x1="16" y1="16" x2="240" y2="240" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FF7EB3"/>
+      <stop offset="50%" stop-color="#B8A9FF"/>
+      <stop offset="100%" stop-color="#7AFCFF"/>
+    </linearGradient>
+    <linearGradient id="hoodGrad" x1="64" y1="48" x2="192" y2="200" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#FFE5EC"/>
+    </linearGradient>
+    <linearGradient id="earInner" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FF7EB3"/>
+      <stop offset="100%" stop-color="#FFB3D1"/>
+    </linearGradient>
+    <linearGradient id="eyeIris" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2B2D42"/>
+      <stop offset="55%" stop-color="#3F4369"/>
+      <stop offset="100%" stop-color="#7AFCFF"/>
+    </linearGradient>
+    <linearGradient id="badgePill" x1="68" y1="176" x2="188" y2="228" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#2B2D42"/>
+      <stop offset="100%" stop-color="#3A3D5C"/>
+    </linearGradient>
+    <filter id="softDrop" x="-10%" y="-10%" width="120%" height="125%">
+      <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#2B2D42" flood-opacity="0.14"/>
+    </filter>
+    <filter id="cheeksBlur" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="2.5"/>
+    </filter>
+  </defs>
+
+  <rect x="14" y="14" width="228" height="228" rx="56" fill="url(#bgGrad)" stroke="url(#rimGrad)" stroke-width="8" filter="url(#softDrop)"/>
+  <rect x="24" y="24" width="208" height="208" rx="46" stroke="#FFFFFF" stroke-width="3" opacity="0.85"/>
+
+  <circle cx="48" cy="54" r="5" fill="#7AFCFF"/>
+  <circle cx="210" cy="62" r="4" fill="#FF7EB3"/>
+  <circle cx="44" cy="196" r="4.5" fill="#FFD166"/>
+  <path d="M206 42 L209 50 L217 53 L209 56 L206 64 L203 56 L195 53 L203 50 Z" fill="#FFD166"/>
+  <path d="M46 112 L48 117 L53 119 L48 121 L46 126 L44 121 L39 119 L44 117 Z" fill="#FF7EB3"/>
+  <path d="M214 176 L216 181 L221 183 L216 185 L214 190 L212 185 L207 183 L212 181 Z" fill="#7AFCFF"/>
+
+  <g filter="url(#softDrop)">
+    <path d="M64 114 L52 46 Q50 34 62 40 L108 68 Z" fill="url(#hoodGrad)" stroke="#2B2D42" stroke-width="5.5" stroke-linejoin="round"/>
+    <path d="M68 100 L61 55 Q60 49 66 53 L96 72 Z" fill="url(#earInner)"/>
+
+    <path d="M192 114 L204 46 Q206 34 194 40 L148 68 Z" fill="url(#hoodGrad)" stroke="#2B2D42" stroke-width="5.5" stroke-linejoin="round"/>
+    <path d="M188 100 L195 55 Q196 49 190 53 L160 72 Z" fill="url(#earInner)"/>
+
+    <ellipse cx="52" cy="128" rx="14" ry="22" fill="#7AFCFF" stroke="#2B2D42" stroke-width="5"/>
+    <ellipse cx="204" cy="128" rx="14" ry="22" fill="#7AFCFF" stroke="#2B2D42" stroke-width="5"/>
+    <ellipse cx="49" cy="122" rx="4" ry="8" fill="#FFFFFF" opacity="0.7"/>
+    <ellipse cx="201" cy="122" rx="4" ry="8" fill="#FFFFFF" opacity="0.7"/>
+
+    <path d="M54 128 C54 76 84 56 128 56 C172 56 202 76 202 128 C202 168 178 190 128 190 C78 190 54 168 54 128 Z" fill="url(#hoodGrad)" stroke="#2B2D42" stroke-width="5.5"/>
+
+    <rect x="70" y="78" width="116" height="96" rx="46" fill="#FFFDF9" stroke="#2B2D42" stroke-width="4.5"/>
+
+    <path d="M84 78 Q96 102 112 86 Q128 106 144 86 Q160 102 172 78" fill="#FFE5EC" stroke="#2B2D42" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <path d="M128 42 Q140 28 148 38" stroke="#2B2D42" stroke-width="4.5" stroke-linecap="round"/>
+    <circle cx="150" cy="39" r="5" fill="#7AFCFF" stroke="#2B2D42" stroke-width="3"/>
+
+    <ellipse cx="85" cy="138" rx="12" ry="7.5" fill="#FF7EB3" opacity="0.55" filter="url(#cheeksBlur)"/>
+    <ellipse cx="171" cy="138" rx="12" ry="7.5" fill="#FF7EB3" opacity="0.55" filter="url(#cheeksBlur)"/>
+    <line x1="81" y1="136" x2="84" y2="140" stroke="#FF5C9E" stroke-width="2" stroke-linecap="round"/>
+    <line x1="87" y1="136" x2="90" y2="140" stroke="#FF5C9E" stroke-width="2" stroke-linecap="round"/>
+    <line x1="167" y1="136" x2="170" y2="140" stroke="#FF5C9E" stroke-width="2" stroke-linecap="round"/>
+    <line x1="173" y1="136" x2="176" y2="140" stroke="#FF5C9E" stroke-width="2" stroke-linecap="round"/>
+
+    <g>
+      <ellipse cx="98" cy="122" rx="12.5" ry="15" fill="url(#eyeIris)" stroke="#2B2D42" stroke-width="3"/>
+      <path d="M84 114 Q98 104 112 114" stroke="#2B2D42" stroke-width="4.5" stroke-linecap="round"/>
+      <circle cx="93" cy="115" r="5" fill="#FFFFFF"/>
+      <circle cx="104" cy="128" r="2.5" fill="#FFFFFF"/>
+      <circle cx="98" cy="129" r="3" fill="#FF7EB3"/>
+
+      <ellipse cx="158" cy="122" rx="12.5" ry="15" fill="url(#eyeIris)" stroke="#2B2D42" stroke-width="3"/>
+      <path d="M144 114 Q158 104 172 114" stroke="#2B2D42" stroke-width="4.5" stroke-linecap="round"/>
+      <circle cx="153" cy="115" r="5" fill="#FFFFFF"/>
+      <circle cx="164" cy="128" r="2.5" fill="#FFFFFF"/>
+      <circle cx="158" cy="129" r="3" fill="#FF7EB3"/>
+    </g>
+
+    <polygon points="128,131 125,127 131,127" fill="#FF7EB3"/>
+    <path d="M117 141 Q122.5 148 128 141 Q133.5 148 139 141" stroke="#2B2D42" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <rect x="64" y="168" width="128" height="56" rx="28" fill="url(#badgePill)" stroke="#2B2D42" stroke-width="5"/>
+    <rect x="70" y="173" width="116" height="46" rx="23" stroke="#7AFCFF" stroke-width="2" opacity="0.5"/>
+
+    <ellipse cx="66" cy="196" rx="13" ry="11" fill="#FFF0F5" stroke="#2B2D42" stroke-width="4.5"/>
+    <circle cx="66" cy="198" r="4" fill="#FF7EB3"/>
+    <ellipse cx="190" cy="196" rx="13" ry="11" fill="#FFF0F5" stroke="#2B2D42" stroke-width="4.5"/>
+    <circle cx="190" cy="198" r="4" fill="#FF7EB3"/>
+
+    <text x="128" y="205" text-anchor="middle" font-family="'Fredoka', 'Quicksand', 'Nunito', 'Rounded Mplus 1c', system-ui, sans-serif" font-size="30" font-weight="800" letter-spacing="2">
+      <tspan fill="#7AFCFF">{</tspan>
+      <tspan fill="#FFF0F5"> C </tspan>
+      <tspan fill="#FF7EB3">}</tspan>
+    </text>
+  </g>
+</svg>

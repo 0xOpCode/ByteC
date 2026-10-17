@@ -35,7 +35,7 @@ void enqueue(struct Queue *q, int element)
 {
     if (isFull(q))
     {
-        printf("Queue is Full!\n");
+        printf("Queue is full.\n");
         return;
     }
     if (q->front == -1) q->front = 0;
@@ -49,7 +49,7 @@ int dequeue(struct Queue *q)
     int element;
     if (isEmpty(q))
     {
-        printf("Queue is Empty!\n");
+        printf("Queue is empty.\n");
         return -1;
     }
     element = q->items[q->front];
@@ -69,7 +69,7 @@ void display(struct Queue *q)
 {
     if (isEmpty(q))
     {
-        printf("Queue is Empty!\n");
+        printf("Queue is empty.\n");
         return;
     }
     printf("Queue elements: ");
@@ -117,7 +117,7 @@ int main()
             case 4:
                 return 0;
             default:
-                printf("Invalid choice!\n");
+                printf("Invalid choice.\n");
         }
     }
     return 0;

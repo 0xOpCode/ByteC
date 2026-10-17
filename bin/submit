@@ -1,0 +1,568 @@
+#!/bin/sh
+# ==============================================================================
+# ByteC: College Lab Report Generator (submit)
+# Generates <stem>_LabReport.doc (RTF 1.5) and <stem>_LabReport.pdf (PDF 1.4)
+# Usage: submit [file.c|file.cpp] [-i input.txt] [--title "Title"] [--aim "Aim"] [--non-interactive]
+# ==============================================================================
+
+show_help() {
+    echo "ByteC College Lab Report Generator (submit)"
+    echo "Usage:"
+    echo "  submit [file.c|file.cpp] [options]"
+    echo ""
+    echo "Options:"
+    echo "  -i, --input <file>       Provide standard input file for program run"
+    echo "  --title \"<title>\"        Set experiment/assignment title"
+    echo "  --aim \"<aim>\"            Set experiment aim/objective"
+    echo "  -n, --non-interactive    Run without interactive prompts"
+    echo "  -h, --help               Show this help guide"
+    exit 0
+}
+
+SRC=""
+INPUT_FILE=""
+CLI_TITLE=""
+CLI_AIM=""
+NON_INTERACTIVE=0
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -h|--help)
+            show_help
+            ;;
+        -i|--input)
+            shift
+            INPUT_FILE="$1"
+            ;;
+        --title)
+            shift
+            CLI_TITLE="$1"
+            ;;
+        --aim)
+            shift
+            CLI_AIM="$1"
+            ;;
+        -n|--non-interactive)
+            NON_INTERACTIVE=1
+            ;;
+        *)
+            if [ -z "$SRC" ]; then
+                SRC="$1"
+            fi
+            ;;
+    esac
+    shift
+done
+
+if [ ! -t 0 ]; then
+    NON_INTERACTIVE=1
+fi
+
+if [ -z "$SRC" ]; then
+    if [ -f "$HOME/.bytec/.last_file" ]; then
+        CANDIDATE=$(head -n 1 "$HOME/.bytec/.last_file" 2>/dev/null)
+        if [ -n "$CANDIDATE" ] && [ -f "$CANDIDATE" ]; then
+            SRC="$CANDIDATE"
+        fi
+    fi
+    if [ -z "$SRC" ]; then
+        SRC=$(ls -t *.c *.cpp *.cc *.cxx 2>/dev/null | head -n 1)
+    fi
+fi
+
+if [ -z "$SRC" ] || [ ! -f "$SRC" ]; then
+    echo "Error: No C/C++ source file specified or found." >&2
+    echo "Usage: submit <file.c|file.cpp> [--title \"Title\"] [--aim \"Aim\"]" >&2
+    exit 1
+fi
+
+mkdir -p "$HOME/.bytec" 2>/dev/null
+printf "%s\n" "$SRC" > "$HOME/.bytec/.last_file" 2>/dev/null
+
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+SRC_BASE=$(basename "$SRC")
+STEM="${SRC_BASE%.*}"
+DATE_STR=$(date "+%Y-%m-%d %H:%M")
+
+# ------------------------------------------------------------------------------
+# Step 1: Storage Permission and Directory Setup
+# ------------------------------------------------------------------------------
+IS_TERMUX=0
+if [ -n "$PREFIX" ] && printf "%s" "$PREFIX" | grep -q "com.termux"; then
+    IS_TERMUX=1
+elif [ -d "/data/data/com.termux" ]; then
+    IS_TERMUX=1
+fi
+
+if [ $IS_TERMUX -eq 1 ]; then
+    OUT_DIR="/sdcard/Download/ByteC"
+else
+    OUT_DIR="${XDG_DOWNLOAD_DIR:-$HOME/Downloads}/ByteC"
+fi
+
+check_write_perm() {
+    TARGET_DIR="$1"
+    if mkdir -p "$TARGET_DIR" 2>/dev/null && touch "$TARGET_DIR/.perm_test" 2>/dev/null; then
+        rm -f "$TARGET_DIR/.perm_test" 2>/dev/null
+        return 0
+    fi
+    return 1
+}
+
+if ! check_write_perm "$OUT_DIR"; then
+    if [ $IS_TERMUX -eq 1 ]; then
+        echo "Storage permission is required to save lab reports to /sdcard/Download/ByteC."
+        if command -v termux-setup-storage >/dev/null 2>&1; then
+            termux-setup-storage
+        elif [ -x "/data/data/com.termux/files/usr/bin/termux-setup-storage" ]; then
+            /data/data/com.termux/files/usr/bin/termux-setup-storage
+        fi
+        if [ $NON_INTERACTIVE -eq 0 ] && [ -t 0 ]; then
+            echo "Please tap 'Allow' on the Android storage permission dialog..."
+        fi
+        POLL_SEC=0
+        while [ $POLL_SEC -lt 15 ]; do
+            if check_write_perm "$OUT_DIR"; then
+                break
+            fi
+            sleep 1
+            POLL_SEC=$((POLL_SEC + 1))
+        done
+    fi
+
+    if ! check_write_perm "$OUT_DIR"; then
+        OUT_DIR="$HOME/c_projects/ByteC_Submissions"
+        mkdir -p "$OUT_DIR" 2>/dev/null
+        echo "Notice: Using fallback submission folder: $OUT_DIR"
+    fi
+fi
+
+# ------------------------------------------------------------------------------
+# Step 2: Student Profile and Metadata
+# ------------------------------------------------------------------------------
+PROFILE_FILE="$HOME/.bytec/student_profile.conf"
+STUDENT_NAME=""
+ROLL_NO=""
+CLASS_BATCH=""
+
+if [ -f "$PROFILE_FILE" ]; then
+    STUDENT_NAME=$(sed -n 's/^STUDENT_NAME=//p' "$PROFILE_FILE" | head -n 1)
+    ROLL_NO=$(sed -n 's/^ROLL_NO=//p' "$PROFILE_FILE" | head -n 1)
+    CLASS_BATCH=$(sed -n 's/^CLASS_BATCH=//p' "$PROFILE_FILE" | head -n 1)
+fi
+
+if [ -z "$STUDENT_NAME" ]; then
+    if [ $NON_INTERACTIVE -eq 0 ] && [ -t 0 ]; then
+        echo "------------------------------------------------------------"
+        echo "First-Time Student Profile Setup (saved to ~/.bytec/student_profile.conf)"
+        printf "Student Full Name [Student]: "
+        read -r IN_NAME
+        printf "Roll Number / ID  [N/A]: "
+        read -r IN_ROLL
+        printf "Class / Batch     [B.Tech/BCA]: "
+        read -r IN_BATCH
+        STUDENT_NAME="${IN_NAME:-Student}"
+        ROLL_NO="${IN_ROLL:-N/A}"
+        CLASS_BATCH="${IN_BATCH:-B.Tech/BCA}"
+        {
+            printf "STUDENT_NAME=%s\n" "$STUDENT_NAME"
+            printf "ROLL_NO=%s\n" "$ROLL_NO"
+            printf "CLASS_BATCH=%s\n" "$CLASS_BATCH"
+        } > "$PROFILE_FILE"
+    else
+        STUDENT_NAME="Student"
+        ROLL_NO="N/A"
+        CLASS_BATCH="B.Tech/BCA"
+    fi
+fi
+
+FILE_TITLE=$(sed -n 's/.*@title:[[:space:]]*\(.*\)/\1/p' "$SRC" | head -n 1 | tr -d '\r')
+FILE_AIM=$(sed -n 's/.*@aim:[[:space:]]*\(.*\)/\1/p' "$SRC" | head -n 1 | tr -d '\r')
+
+REPORT_TITLE="${CLI_TITLE:-$FILE_TITLE}"
+REPORT_AIM="${CLI_AIM:-$FILE_AIM}"
+
+if [ -z "$REPORT_TITLE" ]; then
+    if [ $NON_INTERACTIVE -eq 0 ] && [ -t 0 ]; then
+        printf "Experiment Title [Practical - %s]: " "$SRC_BASE"
+        read -r IN_TITLE
+        REPORT_TITLE="${IN_TITLE:-Practical - $SRC_BASE}"
+    else
+        REPORT_TITLE="Practical - $SRC_BASE"
+    fi
+fi
+
+if [ -z "$REPORT_AIM" ]; then
+    if [ $NON_INTERACTIVE -eq 0 ] && [ -t 0 ]; then
+        printf "Experiment Aim   [Implement and verify %s]: " "$SRC_BASE"
+        read -r IN_AIM
+        REPORT_AIM="${IN_AIM:-Implement and verify $SRC_BASE}"
+    else
+        REPORT_AIM="Implement and verify $SRC_BASE"
+    fi
+fi
+
+# ------------------------------------------------------------------------------
+# Step 3: Compile and Capture Output with Visible Input Echo
+# ------------------------------------------------------------------------------
+TMP_DIR="${TMPDIR:-/tmp}"
+[ ! -d "$TMP_DIR" ] && mkdir -p "$TMP_DIR" 2>/dev/null
+BIN="$TMP_DIR/submit_$$"
+RAW_OUT="$TMP_DIR/submit_out_$$.txt"
+TRANSCRIPT="$TMP_DIR/submit_transcript_$$.txt"
+LIVE_IN="$TMP_DIR/submit_live_in_$$.txt"
+TIMEOUT_FLAG="$TMP_DIR/submit_timeout_$$"
+
+cleanup() {
+    rm -f "$BIN" "$RAW_OUT" "$TRANSCRIPT" "$LIVE_IN" "$TIMEOUT_FLAG"
+}
+trap cleanup EXIT INT TERM
+
+case "$SRC" in
+    *.cpp|*.cc|*.cxx)
+        COMPILER="clang++"
+        FLAGS="-g -O0 -Wall -std=c++20"
+        LINK_FLAGS=""
+        ;;
+    *)
+        COMPILER="clang"
+        FLAGS="-g -O0 -Wall"
+        LINK_FLAGS="-lm"
+        ;;
+esac
+
+echo "Compiling $SRC..."
+$COMPILER $FLAGS "$SRC" -o "$BIN" $LINK_FLAGS 2>/dev/null
+if [ $? -ne 0 ]; then
+    echo "Compilation failed. Running diagnostic explainer..." >&2
+    if [ -x "$SCRIPT_DIR/explain" ]; then
+        "$SCRIPT_DIR/explain" "$SRC"
+    elif command -v explain >/dev/null 2>&1; then
+        explain "$SRC"
+    else
+        $COMPILER $FLAGS "$SRC" -o "$BIN" $LINK_FLAGS
+    fi
+    exit 1
+fi
+
+run_bounded() {
+    FEED="$1"
+    OUT="$2"
+    rm -f "$TIMEOUT_FLAG"
+    "$BIN" < "$FEED" > "$OUT" 2>&1 &
+    RPID=$!
+    (
+        sleep 5
+        if kill -0 "$RPID" 2>/dev/null; then
+            : > "$TIMEOUT_FLAG"
+            kill -9 "$RPID" 2>/dev/null
+        fi
+    ) >/dev/null 2>&1 &
+    WPID=$!
+    wait "$RPID" 2>/dev/null
+    R_RC=$?
+    kill -9 "$WPID" 2>/dev/null
+    wait "$WPID" 2>/dev/null
+    if [ -f "$TIMEOUT_FLAG" ]; then
+        printf "\n[Execution terminated after 5s timeout]\n" >> "$OUT"
+        return 124
+    fi
+    return $R_RC
+}
+
+ACTIVE_IN=""
+if [ -n "$INPUT_FILE" ] && [ -f "$INPUT_FILE" ]; then
+    ACTIVE_IN="$INPUT_FILE"
+elif [ $NON_INTERACTIVE -eq 0 ] && [ -t 0 ]; then
+    if grep -E '(scanf|fgets|getchar|gets|cin|getline)' "$SRC" >/dev/null 2>&1; then
+        printf "Does this program need test input? Enter lines now (finish with empty line): \n"
+        : > "$LIVE_IN"
+        while IFS= read -r LINE_IN; do
+            [ -z "$LINE_IN" ] && break
+            printf "%s\n" "$LINE_IN" >> "$LIVE_IN"
+        done
+        if [ -s "$LIVE_IN" ]; then
+            ACTIVE_IN="$LIVE_IN"
+        fi
+    fi
+fi
+
+{
+    printf "$ crun %s\n" "$SRC_BASE"
+    if [ -n "$ACTIVE_IN" ] && [ -s "$ACTIVE_IN" ]; then
+        printf "[Standard Input]\n"
+        sed 's/\r$//' "$ACTIVE_IN"
+        printf "[Program Output]\n"
+        run_bounded "$ACTIVE_IN" "$RAW_OUT"
+        EXEC_RC=$?
+    else
+        run_bounded "/dev/null" "$RAW_OUT"
+        EXEC_RC=$?
+    fi
+    cat "$RAW_OUT"
+    printf "\n[Process exited with status %d]\n" "$EXEC_RC"
+} > "$TRANSCRIPT"
+
+# ------------------------------------------------------------------------------
+# Step 4A: Generate <stem>_LabReport.doc (RTF 1.5)
+# ------------------------------------------------------------------------------
+DOC_PATH="$OUT_DIR/${STEM}_LabReport.doc"
+PDF_PATH="$OUT_DIR/${STEM}_LabReport.pdf"
+
+awk \
+    -v title="$REPORT_TITLE" \
+    -v aim="$REPORT_AIM" \
+    -v sname="$STUDENT_NAME" \
+    -v roll="$ROLL_NO" \
+    -v batch="$CLASS_BATCH" \
+    -v dt="$DATE_STR" \
+    -v src_file="$SRC" \
+    -v out_file="$TRANSCRIPT" '
+function rtf_esc(s,    r) {
+    r = s
+    gsub(/\r/, "", r)
+    gsub(/\\/, "\\\\", r)
+    gsub(/\{/, "\\{", r)
+    gsub(/\}/, "\\}", r)
+    return r
+}
+BEGIN {
+    print "{\\rtf1\\ansi\\deff0"
+    print "{\\fonttbl{\\f0\\fswiss\\fcharset0 Arial;}{\\f1\\fmodern\\fcharset0 Courier New;}}"
+    print "{\\colortbl;\\red16\\green16\\blue24;\\red244\\green245\\blue247;\\red235\\green240\\blue245;\\red40\\green55\\blue71;\\red180\\green185\\blue195;}"
+    print "\\paperw11906\\paperh16838\\margl1134\\margr1134\\margt1134\\margb1134"
+
+    # Header Banner
+    printf "{\\pard\\cbpat4\\cf3\\sb100\\sa140\\qc\\b\\f0\\fs32 %s\\par}\n", rtf_esc(title)
+    printf "{\\pard\\qc\\f0\\fs18\\cf4 ByteC Practical Lab Submission | Date: %s\\par}\n", rtf_esc(dt)
+    print "\\pard\\sa160\\par"
+
+    # Student Metadata Table
+    print "\\trowd\\trgaph108\\trleft0"
+    print "\\clbrdrt\\brdrs\\brdrw10\\brdrcf5\\clbrdrl\\brdrs\\brdrw10\\brdrcf5\\clbrdrb\\brdrs\\brdrw10\\brdrcf5\\clbrdrr\\brdrs\\brdrw10\\brdrcf5\\clcbpat2\\cellx3200"
+    print "\\clbrdrt\\brdrs\\brdrw10\\brdrcf5\\clbrdrl\\brdrs\\brdrw10\\brdrcf5\\clbrdrb\\brdrs\\brdrw10\\brdrcf5\\clbrdrr\\brdrs\\brdrw10\\brdrcf5\\clcbpat2\\cellx6400"
+    print "\\clbrdrt\\brdrs\\brdrw10\\brdrcf5\\clbrdrl\\brdrs\\brdrw10\\brdrcf5\\clbrdrb\\brdrs\\brdrw10\\brdrcf5\\clbrdrr\\brdrs\\brdrw10\\brdrcf5\\clcbpat2\\cellx9600"
+    printf "\\pard\\intbl\\b\\f0\\fs20 Student: \\b0 %s\\cell ", rtf_esc(sname)
+    printf "\\pard\\intbl\\b\\f0\\fs20 Roll No: \\b0 %s\\cell ", rtf_esc(roll)
+    printf "\\pard\\intbl\\b\\f0\\fs20 Batch: \\b0 %s\\cell\\row\n", rtf_esc(batch)
+    print "\\pard\\sa160\\par"
+
+    # Aim Section
+    print "{\\pard\\b\\f0\\fs24\\cf4 1. Aim / Objective\\par}"
+    printf "{\\pard\\sa180\\f0\\fs21 %s\\par}\n", rtf_esc(aim)
+
+    # Source Code Section in bordered gray monospace box
+    printf "{\\pard\\b\\f0\\fs24\\cf4 2. Source Code (%s)\\par}\n", rtf_esc(src_file)
+    ln = 0
+    while ((getline line < src_file) > 0) {
+        ln++
+        num_str = sprintf("%3d | %s", ln, line)
+        printf "{\\pard\\box\\brdrs\\brdrw10\\brdrcf5\\brsp80\\cbpat2\\f1\\fs18 %s\\par}\n", rtf_esc(num_str)
+    }
+    close(src_file)
+    print "\\pard\\sa180\\par"
+
+    # Terminal Output Section in dark #101018 box with light text
+    print "{\\pard\\b\\f0\\fs24\\cf4 3. Terminal Execution Output\\par}"
+    while ((getline oline < out_file) > 0) {
+        printf "{\\pard\\box\\brdrs\\brdrw15\\brdrcf1\\brsp80\\cbpat1\\cf3\\f1\\fs18 %s\\par}\n", rtf_esc(oline)
+    }
+    close(out_file)
+    print "}"
+}
+' > "$DOC_PATH"
+
+# ------------------------------------------------------------------------------
+# Step 4B: Generate <stem>_LabReport.pdf (Standalone PDF 1.4 via POSIX awk)
+# ------------------------------------------------------------------------------
+awk \
+    -v title="$REPORT_TITLE" \
+    -v aim="$REPORT_AIM" \
+    -v sname="$STUDENT_NAME" \
+    -v roll="$ROLL_NO" \
+    -v batch="$CLASS_BATCH" \
+    -v dt="$DATE_STR" \
+    -v src_file="$SRC" \
+    -v out_file="$TRANSCRIPT" '
+function pdf_esc(s,    r) {
+    r = s
+    gsub(/\r/, "", r)
+    gsub(/\t/, "    ", r)
+    gsub(/\\/, "\\\\", r)
+    gsub(/\(/, "\\(", r)
+    gsub(/\)/, "\\)", r)
+    return r
+}
+
+function add_item(kind, text) {
+    item_count++
+    item_kind[item_count] = kind
+    item_text[item_count] = text
+}
+
+function add_wrapped(kind, text, max_w, cont_prefix,    s, chunk) {
+    gsub(/\r/, "", text)
+    gsub(/\t/, "    ", text)
+    if (length(text) == 0) {
+        add_item(kind, "")
+        return
+    }
+    first = 1
+    s = text
+    while (length(s) > max_w) {
+        chunk = substr(s, 1, max_w)
+        s = cont_prefix substr(s, max_w + 1)
+        add_item(kind, chunk)
+        first = 0
+    }
+    add_item(kind, s)
+}
+
+BEGIN {
+    item_count = 0
+
+    add_item("HEADING", "1. Aim / Objective")
+    add_wrapped("BODY", aim, 82, "")
+    add_item("SPACER", "")
+
+    add_item("HEADING", "2. Source Code (" src_file ")")
+    ln = 0
+    while ((getline line < src_file) > 0) {
+        ln++
+        formatted = sprintf("%3d | %s", ln, line)
+        add_wrapped("CODE", formatted, 82, "    | ")
+    }
+    close(src_file)
+    add_item("SPACER", "")
+
+    add_item("HEADING", "3. Terminal Execution Output")
+    while ((getline oline < out_file) > 0) {
+        add_wrapped("TERM", oline, 82, "  ")
+    }
+    close(out_file)
+
+    # Paginate and build content streams
+    page_num = 1
+    y = 700
+    bottom_margin = 55
+    pages_stream[1] = ""
+
+    # Draw Page 1 Banner and Metadata Box
+    s = ""
+    # Dark navy header banner
+    s = s "0.11 0.16 0.24 rg 40 765 515 48 re f\n"
+    s = s "BT /F2 15 Tf 1 1 1 rg 52 791 Td (" pdf_esc(title) ") Tj ET\n"
+    s = s "BT /F1 9 Tf 0.82 0.86 0.92 rg 52 775 Td (ByteC Lab Submission  |  Date: " pdf_esc(dt) ") Tj ET\n"
+
+    # Metadata box
+    s = s "0.95 0.96 0.98 rg 0.75 0.78 0.82 RG 0.8 w 40 722 515 34 re B\n"
+    meta_line = "Student: " sname "    |    Roll No: " roll "    |    Batch: " batch
+    s = s "BT /F2 9.5 Tf 0.12 0.15 0.20 rg 50 735 Td (" pdf_esc(meta_line) ") Tj ET\n"
+    pages_stream[1] = s
+
+    for (i = 1; i <= item_count; i++) {
+        k = item_kind[i]
+        t = item_text[i]
+        row_h = 13
+        if (k == "HEADING") row_h = 20
+        else if (k == "SPACER") row_h = 10
+
+        if (y - row_h < bottom_margin) {
+            page_num++
+            y = 785
+            pages_stream[page_num] = "BT /F1 8 Tf 0.45 0.48 0.52 rg 40 808 Td (" pdf_esc(title " - Page " page_num) ") Tj ET\n"
+        }
+
+        if (k == "HEADING") {
+            y -= 6
+            pages_stream[page_num] = pages_stream[page_num] \
+                sprintf("BT /F2 11.5 Tf 0.11 0.16 0.24 rg 40 %d Td (%s) Tj ET\n", y, pdf_esc(t))
+            y -= 14
+        } else if (k == "BODY") {
+            pages_stream[page_num] = pages_stream[page_num] \
+                sprintf("BT /F1 10 Tf 0.15 0.15 0.18 rg 44 %d Td (%s) Tj ET\n", y, pdf_esc(t))
+            y -= 13
+        } else if (k == "CODE") {
+            # Light gray filled row with border
+            pages_stream[page_num] = pages_stream[page_num] \
+                sprintf("0.95 0.96 0.97 rg 0.82 0.84 0.88 RG 0.4 w 40 %d 515 13 re B\n", y - 3) \
+                sprintf("BT /F3 8.5 Tf 0.10 0.12 0.16 rg 46 %d Td (%s) Tj ET\n", y, pdf_esc(t))
+            y -= 13
+        } else if (k == "TERM") {
+            # Dark #101018 (0.063 0.063 0.094) terminal row with light text
+            pages_stream[page_num] = pages_stream[page_num] \
+                sprintf("0.063 0.063 0.094 rg 40 %d 515 13 re f\n", y - 3) \
+                sprintf("BT /F3 8.5 Tf 0.90 0.94 0.98 rg 46 %d Td (%s) Tj ET\n", y, pdf_esc(t))
+            y -= 13
+        } else if (k == "SPACER") {
+            y -= 10
+        }
+    }
+
+    # Assemble PDF 1.4 objects with exact byte offsets
+    obj[1] = "<< /Type /Catalog /Pages 2 0 R >>"
+
+    kids = ""
+    for (p = 1; p <= page_num; p++) {
+        p_obj = 6 + (p - 1) * 2 + 1
+        kids = kids sprintf("%d 0 R ", p_obj)
+    }
+    obj[2] = sprintf("<< /Type /Pages /Kids [ %s] /Count %d >>", kids, page_num)
+    obj[3] = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"
+    obj[4] = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>"
+    obj[5] = "<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>"
+    obj[6] = "<< /Type /Font /Subtype /Type1 /BaseFont /Courier-Bold >>"
+
+    total_objs = 6 + page_num * 2
+    for (p = 1; p <= page_num; p++) {
+        p_obj = 6 + (p - 1) * 2 + 1
+        c_obj = p_obj + 1
+        stream_data = pages_stream[p]
+        obj[p_obj] = sprintf("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R /F4 6 0 R >> >> /Contents %d 0 R >>", c_obj)
+        obj[c_obj] = sprintf("<< /Length %d >>\nstream\n%sendstream", length(stream_data), stream_data)
+    }
+
+    header = "%PDF-1.4\n"
+    printf "%s", header
+    offset = length(header)
+
+    for (id = 1; id <= total_objs; id++) {
+        obj_offset[id] = offset
+        block = sprintf("%d 0 obj\n%s\nendobj\n", id, obj[id])
+        printf "%s", block
+        offset += length(block)
+    }
+
+    xref_pos = offset
+    printf "xref\n0 %d\n", total_objs + 1
+    printf "0000000000 65535 f \n"
+    for (id = 1; id <= total_objs; id++) {
+        printf "%010d 00000 n \n", obj_offset[id]
+    }
+    printf "trailer\n<< /Size %d /Root 1 0 R >>\nstartxref\n%d\n%%%%EOF\n", total_objs + 1, xref_pos
+}
+' > "$PDF_PATH"
+
+echo "------------------------------------------------------------"
+echo "ByteC Lab Report Generated:"
+echo "  Word/RTF : $DOC_PATH"
+echo "  PDF 1.4  : $PDF_PATH"
+echo "------------------------------------------------------------"
+
+# ------------------------------------------------------------------------------
+# Step 5: Termux Notification
+# ------------------------------------------------------------------------------
+NOTIFY_BIN=""
+if command -v termux-notification >/dev/null 2>&1; then
+    NOTIFY_BIN="termux-notification"
+elif [ -x "/data/data/com.termux/files/usr/bin/termux-notification" ]; then
+    NOTIFY_BIN="/data/data/com.termux/files/usr/bin/termux-notification"
+fi
+
+if [ -n "$NOTIFY_BIN" ]; then
+    "$NOTIFY_BIN" \
+        --title "ByteC Lab Report Saved" \
+        --content "Saved ${STEM}_LabReport.pdf and .doc in Downloads/ByteC" >/dev/null 2>&1 &
+fi
+
+exit 0

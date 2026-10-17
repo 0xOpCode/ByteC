@@ -54,7 +54,7 @@ int main()
     char str1[100], str2[100], copyStr[100];
 
     printf("=========================================\n");
-    printf("🛡️ ByteC: Custom String Operations Demo\n");
+    printf("ByteC: Custom String Operations Demo\n");
     printf("=========================================\n\n");
 
     printf("Enter first string: ");
